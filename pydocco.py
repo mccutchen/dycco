@@ -85,6 +85,13 @@ def parse(path):
                 current_comment = None
                 current_section = i
 
+            # Any module-level documentation will be in section None, so any
+            # code should come after that section. This handles the case where
+            # there are no other doc sections between the module-level docs
+            # and the start of the code.
+            elif current_section is None:
+                current_section = 0
+
             # Figure out where to add this line of code. If the current line
             # is already in the sections dict, this line of code is (probably)
             # associated with a docstring, which takes precedence over the
