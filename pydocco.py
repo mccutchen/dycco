@@ -8,15 +8,25 @@ import markdown
 import pystache
 
 
+DEFAULT_OUTPUT_DIR = 'docs'
 COMMENT_PATTERN = '^\s*#'
 
 
-def document(path, output_dir=None):
+def document(path, output_dir=DEFAULT_OUTPUT_DIR):
     """Generates documentation for the Python file at the given path."""
     title = os.path.basename(path)
     sections = parse(path)
     html = render(title, sections)
-    with open('%s.html' % title, 'w') as f:
+
+    # Figure out where to store the generated documentation
+    output_path = os.path.join(output_dir, '%s.html' % title)
+
+    # Make sure the directory exists
+    if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
+        os.path.makedirs(output_dir)
+
+    # Create/overwrite the documentation at the given path
+    with open(output_path, 'w') as f:
         f.write(html)
 
 def parse(path):
@@ -105,7 +115,6 @@ def render(title, sections):
     with open('template.html') as f:
         return pystache.render(f.read(), context)
 
-
 def preprocess_docs(docs):
     return markdown.markdown('\n\n'.join(docs))
 
@@ -156,3 +165,12 @@ def section():
              'code': [], }
 
 
+def main(paths, output_dir):
+    """Main method to be used when run from the command line."""
+    for path in paths:
+        document(path, output_dir)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        main(sys.argv[1:], DEFAULT_OUTPUT_DIR)
