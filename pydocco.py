@@ -146,8 +146,9 @@ def parse_code(src, sections, skip_lines=set()):
 
             # Otherwise, if we don't have a current section, we're at our
             # first bit of code (aside from any module-level docstrings) and
-            # are starting a new section.
-            elif current_section is None:
+            # are starting a new section. But we want to skip any empty
+            # leading blank lines.
+            elif current_section is None and line:
                 current_section = i
 
             # If the current line is already in the `sections` datastructure,
