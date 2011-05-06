@@ -119,7 +119,7 @@ def parse_code(src, sections, skip_lines=set()):
     current_section = None
     for i, line in enumerate(src.splitlines()):
         # Skip any lines that were in docstrings
-        if i in skip_lines:
+        if i in skip_lines or should_filter(line, i):
             continue
 
         # Are we looking at a comment? If so, and we do not have a current
@@ -160,6 +160,14 @@ def parse_code(src, sections, skip_lines=set()):
             # Finally, append the current line of code to the current
             # section's code block
             sections[current_section]['code'].append(line)
+
+def should_filter(line, num):
+    """Test the given line to see if it should be included. Excludes shebang
+    lines, for now.
+    """
+    if num == 0 and line.startswith('#!'):
+        return True
+    return False
 
 def render(title, sections):
     """Renders the given sections, which should be the result of calling
