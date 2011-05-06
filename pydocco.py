@@ -96,8 +96,9 @@ def parse(path):
             # is already in the sections dict, this line of code is (probably)
             # associated with a docstring, which takes precedence over the
             # current section we're in.
-            in_section = i if i in sections else current_section
-            sections[in_section]['code'].append(line)
+            if i in sections:
+                current_section = i
+            sections[current_section]['code'].append(line)
 
     return sections
 
@@ -123,9 +124,11 @@ def render(title, sections):
         return pystache.render(f.read(), context)
 
 def preprocess_docs(docs):
+    assert isinstance(docs, list)
     return markdown.markdown('\n\n'.join(docs))
 
 def preprocess_code(code):
+    assert isinstance(code, list)
     return '<pre>%s</pre>' % '\n'.join(code)
 
 
