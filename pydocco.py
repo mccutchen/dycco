@@ -62,7 +62,7 @@ def parse(path):
 
     def section():
         """A callable that will generate the datastructure used to store each
-        section. Used as the argument to `defaultdict()` below.
+        section. Used as the argument to `defaultdict` below.
         """
         return { 'docs': [],
                  'code': [], }
@@ -75,27 +75,46 @@ def parse(path):
     # documentation.
     sections = defaultdict(section)
 
-    # **First Pass:** Find any docstrings in the source code by walking its
-    # AST.
+    # First pass: Parse all of the docstrings and get a list of lines we
+    # should skip when parsing the rest of the code. Modifies `sections` in
+    # place.
+    skip_lines = parse_docstrings(src, sections)
+
+    # Second pass: Parse the rest of the code, adding code and comments to the
+    # appropriate sections. Modifies `sections` in place.
+    parse_code(src, sections, skip_lines)
+
+    return sections
+
+def parse_docstrings(src, sections):
+    """Parse the given `src` to find any docstrings, add them to the
+    appropriate place in `sections`, and return a `set` of line numbers where
+    the docstrings are. **Note:** Modifies `sections` in place.
+    """
+    # Find any docstrings in the source code by walking its AST.
     visitor = DocStringVisitor()
     visitor.visit(ast.parse(src))
 
     # Add all of the docstrings we've found to the appropriate places in the
     # `sections` datastructure. The corresponding code will be added later.
-    for doc, start_line, end_line in visitor.docstrings:
-        sections[start_line]['docs'].append(doc)
+    for doc, target_line, _, _ in visitor.docstrings:
+        sections[target_line]['docs'].append(doc)
 
     # Build a set of the line numbers where we found docstrings, so we know to
-    # skip them in the second pass. **FIXME:** If we have a module-level
-    # docstring, this will ignore any code that came before it, because its
-    # `target_line` will be None after walking the AST.
+    # skip them in the second pass.
     skip_lines = set()
-    for doc, target_line, end_line in visitor.docstrings:
-        start = target_line if target_line else 0
-        skip_lines.update(xrange(start, end_line))
+    for doc, _, start_line, end_line in visitor.docstrings:
+        skip_lines.update(xrange(start_line, end_line + 1))
 
-    # **Second Pass**: Now iterate through each line of source code to gather
-    # up comments and code listings and add them to the sections structure.
+    return skip_lines
+
+def parse_code(src, sections, skip_lines=set()):
+    """Parse the given `src` line by line to gather source code and comments
+    into the appropriate places in `sections`. Any line numbers in
+    `skip_lines` are skipped. **Note:** Modifies `sections` in place.
+    """
+    # Iterate through each line of source code to gather up comments and code
+    # listings and add them to the sections structure.
     current_comment = None
     current_section = None
     for i, line in enumerate(src.splitlines()):
@@ -125,23 +144,22 @@ def parse(path):
                 current_comment = None
                 current_section = i
 
-            # Any module-level documentation will be in section None, so any
-            # code should come after that section. This handles the case where
-            # there are no other doc sections between the module-level docs
-            # and the start of the code.
+            # Otherwise, if we don't have a current section, we're at our
+            # first bit of code (aside from any module-level docstrings) and
+            # are starting a new section.
             elif current_section is None:
                 current_section = i
 
-            # Figure out where to add this line of code. If the current line
-            # is already in the sections dict, this line of code is (probably)
-            # associated with a docstring, which takes precedence over the
-            # current section we're in.
+            # If the current line is already in the `sections` datastructure,
+            # it is (probably) associated with a docstring from the first
+            # pass, and we should add it to that section instead of whatever
+            # current section we have.
             if i in sections:
                 current_section = i
+
+            # Finally, append the current line of code to the current
+            # section's code block
             sections[current_section]['code'].append(line)
-
-    return sections
-
 
 def render(title, sections):
     """Renders the given sections, which should be the result of calling
@@ -188,8 +206,9 @@ class DocStringVisitor(ast.NodeVisitor):
     """
 
     def __init__(self):
-        # Docstrings will be tracked as a list of 3-tuples that contain the
-        # docstring, its starting line and its ending line.
+        # Docstrings will be tracked as a list of 4-tuples that contain the
+        # docstring, the line of the code to which it applies, its starting
+        # line and its ending line.
         self.docstrings = []
         self.current_node = None
         self.current_doc = None
@@ -215,19 +234,30 @@ class DocStringVisitor(ast.NodeVisitor):
         values are `Str` nodes.
         """
         if isinstance(node.value, ast.Str) and self.current_node:
-            # Manually calculate the starting line of the docstring based on
-            # the number of lines in it and its last line. This lets us handle
-            # module-level docstrings and others the same way (since
-            # `ast.Module` nodes don't record a line number). Make sure to
-            # adjust line numbers to start at 0.
-            end_line = node.lineno - 1
-            lines = len(node.value.s.splitlines())
-            start_line = end_line - (lines if lines > 1 else 0)
 
-            # Add the sanitized version of the current docstring and its
-            # starting and finishing line numbers to our list of docstrings.
+            # Adjust for 0-based line counting
+            end_line = node.lineno - 1
+
+            # Module docstrings have to have their starting lines and targets
+            # calculated manually, since `ast.Module` objects have no line
+            # numbers.
+            if isinstance(self.current_node, ast.Module):
+                line_count = len(node.value.s.splitlines())
+                start_line = end_line - line_count
+                target_line = start_line
+
+            # For all other nodes, just assume that the target is on the
+            # previous line. **TODO:** This probably breaks on, e.g.,
+            # multiline function defs.
+            else:
+                start_line = self.current_node.lineno
+                target_line = start_line - 1
+
+            # Add the sanitized version of the current docstring, its target
+            # and its starting and finishing line numbers to our list of
+            # docstrings.
             self.docstrings.append(
-                (self.current_doc, start_line, node.lineno))
+                (self.current_doc, target_line, start_line, end_line))
 
         # Reset the accounting variables even if we didn't find a docstring,
         # so that we don't accidentally add "unattached" docstrings to
