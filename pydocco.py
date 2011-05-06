@@ -82,9 +82,8 @@ def parse(path):
 
     # Add all of the docstrings we've found to the appropriate places in the
     # `sections` datastructure. The corresponding code will be added later.
-    for doc, parent_line, end_line in visitor.docstrings:
-        key = parent_line - 1 if parent_line else None
-        sections[key]['docs'].append(doc)
+    for doc, start_line, end_line in visitor.docstrings:
+        sections[start_line]['docs'].append(doc)
 
     # Build a set of the line numbers where we found docstrings, so we know to
     # skip them in the second pass. **FIXME:** If we have a module-level
@@ -131,7 +130,7 @@ def parse(path):
             # there are no other doc sections between the module-level docs
             # and the start of the code.
             elif current_section is None:
-                current_section = 0
+                current_section = i
 
             # Figure out where to add this line of code. If the current line
             # is already in the sections dict, this line of code is (probably)
@@ -216,17 +215,24 @@ class DocStringVisitor(ast.NodeVisitor):
         values are `Str` nodes.
         """
         if isinstance(node.value, ast.Str) and self.current_node:
-            # We record the "parent" node's line number as our starting
-            # position. But if this is a module-level docstring, the parent
-            # node will not have a line number.
-            parent_line = getattr(self.current_node, 'lineno', None)
+            # Manually calculate the starting line of the docstring based on
+            # the number of lines in it and its last line. This lets us handle
+            # module-level docstrings and others the same way (since
+            # `ast.Module` nodes don't record a line number). Make sure to
+            # adjust line numbers to start at 0.
+            end_line = node.lineno - 1
+            lines = len(node.value.s.splitlines())
+            start_line = end_line - (lines if lines > 1 else 0)
 
             # Add the sanitized version of the current docstring and its
             # starting and finishing line numbers to our list of docstrings.
             self.docstrings.append(
-                (self.current_doc, parent_line, node.lineno))
+                (self.current_doc, start_line, node.lineno))
 
-            # Reset the accounting variables.
+        # Reset the accounting variables even if we didn't find a docstring,
+        # so that we don't accidentally add "unattached" docstrings to
+        # whatever class/def/module happened to come before them.
+        if self.current_node:
             self.current_node = None
             self.current_doc = None
 
