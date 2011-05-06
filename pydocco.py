@@ -6,6 +6,10 @@ from collections import defaultdict
 
 import markdown
 import pystache
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name
+from pygments.formatters import HtmlFormatter
+
 
 
 DEFAULT_OUTPUT_DIR = 'docs'
@@ -129,7 +133,10 @@ def preprocess_docs(docs):
 
 def preprocess_code(code):
     assert isinstance(code, list)
-    return '<pre>%s</pre>' % '\n'.join(code)
+    lexer = get_lexer_by_name("python")
+    formatter = HtmlFormatter()
+    result = highlight('\n'.join(code), lexer, formatter)
+    return result
 
 
 class DocStringVisitor(ast.NodeVisitor):
