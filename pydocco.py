@@ -19,12 +19,12 @@ COMMENT_PATTERN = '^\s*#'
 
 def document(path, output_dir=DEFAULT_OUTPUT_DIR):
     """Generates documentation for the Python file at the given path."""
-    title = os.path.basename(path)
+    filename = os.path.basename(path)
     sections = parse(path)
-    html = render(title, sections)
+    html = render(filename, sections)
 
     # Figure out where to store the generated documentation
-    output_path = os.path.join(output_dir, '%s.html' % title)
+    output_path = make_output_path(filename, output_dir)
 
     # Make sure the directory exists
     if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
@@ -207,6 +207,14 @@ def preprocess_code(code):
     formatter = HtmlFormatter()
     result = highlight('\n'.join(code), lexer, formatter)
     return result
+
+def make_output_path(filename, output_dir):
+    """Creates an appropriate output path for the given source file and output
+    directory. The output file name will be the name of the source file
+    without its extension.
+    """
+    name, ext = os.path.splitext(filename)
+    return os.path.join(output_dir, '%s.html' % name)
 
 
 class DocStringVisitor(ast.NodeVisitor):
