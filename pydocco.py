@@ -17,22 +17,31 @@ DEFAULT_OUTPUT_DIR = 'docs'
 COMMENT_PATTERN = '^\s*#'
 
 
-def document(path, output_dir=DEFAULT_OUTPUT_DIR):
+def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
     """Generates documentation for the Python file at the given path."""
-    filename = os.path.basename(path)
-    sections = parse(path)
-    html = render(filename, sections)
 
-    # Figure out where to store the generated documentation
-    output_path = make_output_path(filename, output_dir)
+    # If we get a single path, stick it in a list so we can still pretend
+    # we're operating on multiple paths.
+    if isinstance(paths, basestring):
+        paths = [paths]
 
     # Make sure the directory exists
     if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
         os.path.makedirs(output_dir)
 
-    # Create/overwrite the documentation at the given path
-    with open(output_path, 'w') as f:
-        f.write(html)
+    # Build a list of (path, filename, output_path) tuples, which will be used
+    # to build the links to other source code docs in the templates
+    filenames = map(os.path.basename, paths)
+    output_paths = [make_output_path(f, output_dir) for f in filenames]
+    sources = zip(paths, filenames, output_paths)
+
+    for path, filename, output_path in sources:
+        sections = parse(path)
+        html = render(filename, sections, sources)
+
+        # Create/overwrite the documentation at the given path
+        with open(output_path, 'w') as f:
+            f.write(html)
 
 def parse(path):
     """Parse the source code at the given path, in two passes. The first pass
@@ -170,7 +179,7 @@ def should_filter(line, num):
         return True
     return False
 
-def render(title, sections):
+def render(title, sections, sources):
     """Renders the given sections, which should be the result of calling
     `parse` on a source code file, into HTML.
     """
@@ -286,12 +295,6 @@ class DocStringVisitor(ast.NodeVisitor):
         super(DocStringVisitor, self).generic_visit(node)
 
 
-def main(paths, output_dir):
-    """Main method to be used when run from the command line."""
-    for path in paths:
-        document(path, output_dir)
-
-
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        main(sys.argv[1:], DEFAULT_OUTPUT_DIR)
+        document(sys.argv[1:], DEFAULT_OUTPUT_DIR)
