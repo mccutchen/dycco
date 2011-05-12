@@ -83,15 +83,18 @@ def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
     output_paths = [make_output_path(f, output_dir) for f in filenames]
     sources = zip(paths, filenames, output_paths)
 
+    # Parse each input file into sections, render the sections as HTML into a
+    # string, and create or overwrite the documentation at the appropriate
+    # output path.
     for path, filename, output_path in sources:
-        sections = parse(path)
-        html = render(filename, sections, sources)
+        with open(path) as f:
+            src = f.read()
+            sections = parse(src)
+            html = render(filename, sections, sources)
+            with open(output_path, 'w') as f:
+                f.write(html)
 
-        # Create/overwrite the documentation at the given path
-        with open(output_path, 'w') as f:
-            f.write(html)
-
-def parse(path):
+def parse(src):
     """Parse the source code at the given path, in two passes. The first pass
     walks the Abstract Syntax Tree of the code, gathering up any
     docstrings. The second pass processes the code line by line, grouping the
@@ -123,10 +126,6 @@ def parse(path):
         """
         return { 'docs': [],
                  'code': [], }
-
-    # Read the whole source file into memory.
-    with open(path) as f:
-        src = f.read()
 
     # The basic `sections` datastructure we'll use to keep track of code and
     # documentation.
