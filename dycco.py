@@ -1,24 +1,72 @@
 #!/usr/bin/env python
 
-import ast
-import os
-import re
-import sys
-from collections import defaultdict
+"""
+**Dycco** is another Python port of [Docco][docco], the quick-and-dirty,
+hundred-line-long, literate-programming-style documentation generator.
 
+Dycco reads Python source files and produces annotated source documentation in
+HTML format. Comments and docstrings are formatted with [Markdown][markdown]
+and presented as annotations alongside the source code, which is
+syntax-highlighted by [Pygments][pygments]. This page is the result of running
+Dycco against its [own source file][dycco].
+
+Currently, there is no setup for Dycco, so you'll have to fetch its [source
+code][dycco] and the prerequisites yourself. Dycco can then be run like so
+
+    dycco.py *.py
+
+to generate documentation for each Python file in the current directory. The
+documentation is output into a `docs/` directory in the current directory.
+
+Dycco differs from Nick Fitzgerald's [Pycco][pycco], the first Python port of
+[Docco][docco] in that it only knows how to generate documenation on Python
+source code and it uses that specialization to more accurately parse
+documentation. It does so using a two-pass parsing stage, first walking the
+*Abstract Syntax Tree* of the code to gather up docstrings, then examining the
+code line-by-line to extract comments.
+
+[Docco][docco]'s gorgeous HTML and CSS are taken verbatim. Like
+[Pycco][pycco], Dycco uses [Mustache][mustache] templates rendered by
+[Pystache][pystache]. The first version of Dycco's templates and CSS were
+taken straight from [Pycco][pycco], then updated to match the latest changes
+to [Docco][docco]'s output.
+
+[docco]: http://jashkenas.github.com/docco/
+[markdown]: http://daringfireball.net/projects/markdown/
+[pygments]: http://pygments.org/
+[dycco]: https://github.com/mccutchen/dycco
+[pycco]: http://fitzgen.github.com/pycco/
+[mustache]: http://mustache.github.com/
+[pystache]: https://github.com/defunkt/pystache
+"""
+
+### Prerequisites
+# Dycco requires the `markdown`, `pystache` and `pygments` modules to be
+# installed.
 import markdown
 import pystache
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
 
+import ast
+import os
+import re
+import sys
+from collections import defaultdict
+
 
 DEFAULT_OUTPUT_DIR = 'docs'
 COMMENT_PATTERN = '^\s*#'
 
 
+### Main Documentation Generation Functions
 def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
-    """Generates documentation for the Python file at the given path."""
+    """Generates documentation for the Python files at the given `paths` by
+    parsing each file into pairs of documentation and source code and
+    rendering those pairs into an HTML file. The `paths` param can be a `list`
+    of paths or a single `str` path.
+    """
 
     # If we get a single path, stick it in a list so we can still pretend
     # we're operating on multiple paths.

@@ -2,7 +2,7 @@
 
 <html>
 <head>
-  <title>pydocco.py</title>
+  <title>dycco.py</title>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <style type="text/css" media="screen">
     /*--------------------- Layout and Typography ----------------------------*/
@@ -204,7 +204,7 @@
       <thead>
         <tr>
           <th class="docs">
-            <h1>pydocco.py</h1>
+            <h1>dycco.py</h1>
           </th>
           <th class="code">
           </th>
@@ -228,20 +228,57 @@
               <div class="pilwrap">
                 <a class="pilcrow" href="#section-2">&#182;</a>
               </div>
-              
+              <p><strong>Dycco</strong> is another Python port of <a href="http://jashkenas.github.com/docco/">Docco</a>, the quick-and-dirty,
+hundred-line-long, literate-programming-style documentation generator.</p>
+<p>Dycco reads Python source files and produces annotated source documentation in
+HTML format. Comments and docstrings are formatted with <a href="http://daringfireball.net/projects/markdown/">Markdown</a>
+and presented as annotations alongside the source code, which is
+syntax-highlighted by <a href="http://pygments.org/">Pygments</a>. This page is the result of running
+Dycco against its <a href="https://github.com/mccutchen/dycco">own source file</a>.</p>
+<p>Currently, there is no setup for Dycco, so you'll have to fetch its <a href="https://github.com/mccutchen/dycco">source
+code</a> and the prerequisites yourself. Dycco can then be run like so</p>
+<pre><code>dycco.py *.py
+</code></pre>
+<p>to generate documentation for each Python file in the current directory. The
+documentation is output into a <code>docs/</code> directory in the current directory.</p>
+<p>Dycco differs from Nick Fitzgerald's <a href="http://fitzgen.github.com/pycco/">Pycco</a>, the first Python port of
+<a href="http://jashkenas.github.com/docco/">Docco</a> in that it only knows how to generate documenation on Python
+source code and it uses that specialization to more accurately parse
+documentation. It does so using a two-pass parsing stage, first walking the
+<em>Abstract Syntax Tree</em> of the code to gather up docstrings, then examining the
+code line-by-line to extract comments.</p>
+<p><a href="http://jashkenas.github.com/docco/">Docco</a>'s gorgeous HTML and CSS are taken verbatim. Like
+<a href="http://fitzgen.github.com/pycco/">Pycco</a>, Dycco uses <a href="http://mustache.github.com/">Mustache</a> templates rendered by
+<a href="https://github.com/defunkt/pystache">Pystache</a>. The first version of Dycco's templates and CSS were
+taken straight from <a href="http://fitzgen.github.com/pycco/">Pycco</a>, then updated to match the latest changes
+to <a href="http://jashkenas.github.com/docco/">Docco</a>'s output.</p>
             </td>
             <td class="code">
-              <div class="highlight"><pre><span class="kn">import</span> <span class="nn">ast</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+              <div class="highlight"><pre>
+</pre></div>
 
-<span class="kn">import</span> <span class="nn">markdown</span>
+            </td>
+          </tr><tr id="section-45">
+            <td class="docs">
+              <div class="pilwrap">
+                <a class="pilcrow" href="#section-45">&#182;</a>
+              </div>
+              <h2>Prerequisites</h2>
+<p>Dycco requires the <code>markdown</code>, <code>pystache</code> and <code>pygments</code> modules to be
+ installed.</p>
+            </td>
+            <td class="code">
+              <div class="highlight"><pre><span class="kn">import</span> <span class="nn">markdown</span>
 <span class="kn">import</span> <span class="nn">pystache</span>
 <span class="kn">from</span> <span class="nn">pygments</span> <span class="kn">import</span> <span class="n">highlight</span>
 <span class="kn">from</span> <span class="nn">pygments.lexers</span> <span class="kn">import</span> <span class="n">get_lexer_by_name</span>
 <span class="kn">from</span> <span class="nn">pygments.formatters</span> <span class="kn">import</span> <span class="n">HtmlFormatter</span>
+
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 
 
 <span class="n">DEFAULT_OUTPUT_DIR</span> <span class="o">=</span> <span class="s">&#39;docs&#39;</span>
@@ -249,37 +286,40 @@
 </pre></div>
 
             </td>
-          </tr><tr id="section-19">
+          </tr><tr id="section-63">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-19">&#182;</a>
+                <a class="pilcrow" href="#section-63">&#182;</a>
               </div>
-              <p>Generates documentation for the Python file at the given path.</p>
+              <p>Generates documentation for the Python files at the given <code>paths</code> by
+parsing each file into pairs of documentation and source code and
+rendering those pairs into an HTML file. The <code>paths</code> param can be a <code>list</code>
+of paths or a single <code>str</code> path.</p>
+<h2>Main Documentation Generation Functions</h2>
             </td>
             <td class="code">
-              <div class="highlight"><pre><span class="k">def</span> <span class="nf">document</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">DEFAULT_OUTPUT_DIR</span><span class="p">):</span>
-    <span class="n">title</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    <span class="n">sections</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    <span class="n">html</span> <span class="o">=</span> <span class="n">render</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">sections</span><span class="p">)</span>
+              <div class="highlight"><pre><span class="k">def</span> <span class="nf">document</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">DEFAULT_OUTPUT_DIR</span><span class="p">):</span>
 </pre></div>
 
             </td>
-          </tr><tr id="section-26">
+          </tr><tr id="section-72">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-26">&#182;</a>
+                <a class="pilcrow" href="#section-72">&#182;</a>
               </div>
-              <p>Figure out where to store the generated documentation</p>
+              <p>If we get a single path, stick it in a list so we can still pretend
+ we're operating on multiple paths.</p>
             </td>
             <td class="code">
-              <div class="highlight"><pre>    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">.html&#39;</span> <span class="o">%</span> <span class="n">title</span><span class="p">)</span>
+              <div class="highlight"><pre>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">paths</span><span class="p">]</span>
 </pre></div>
 
             </td>
-          </tr><tr id="section-29">
+          </tr><tr id="section-76">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-29">&#182;</a>
+                <a class="pilcrow" href="#section-76">&#182;</a>
               </div>
               <p>Make sure the directory exists</p>
             </td>
@@ -289,23 +329,42 @@
 </pre></div>
 
             </td>
-          </tr><tr id="section-33">
+          </tr><tr id="section-81">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-33">&#182;</a>
+                <a class="pilcrow" href="#section-81">&#182;</a>
+              </div>
+              <p>Build a list of (path, filename, output_path) tuples, which will be used
+ to build the links to other source code docs in the templates</p>
+            </td>
+            <td class="code">
+              <div class="highlight"><pre>    <span class="n">filenames</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">,</span> <span class="n">paths</span><span class="p">)</span>
+    <span class="n">output_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">make_output_path</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">]</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">filenames</span><span class="p">,</span> <span class="n">output_paths</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">output_path</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
+        <span class="n">sections</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">html</span> <span class="o">=</span> <span class="n">render</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sections</span><span class="p">,</span> <span class="n">sources</span><span class="p">)</span>
+</pre></div>
+
+            </td>
+          </tr><tr id="section-90">
+            <td class="docs">
+              <div class="pilwrap">
+                <a class="pilcrow" href="#section-90">&#182;</a>
               </div>
               <p>Create/overwrite the documentation at the given path</p>
             </td>
             <td class="code">
-              <div class="highlight"><pre>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
+              <div class="highlight"><pre>        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
 </pre></div>
 
             </td>
-          </tr><tr id="section-36">
+          </tr><tr id="section-93">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-36">&#182;</a>
+                <a class="pilcrow" href="#section-93">&#182;</a>
               </div>
               <p>Parse the source code at the given path, in two passes. The first pass
 walks the Abstract Syntax Tree of the code, gathering up any
@@ -332,10 +391,10 @@ key, and will come before any other sections in the output.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-62">
+          </tr><tr id="section-119">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-62">&#182;</a>
+                <a class="pilcrow" href="#section-119">&#182;</a>
               </div>
               <p>A callable that will generate the datastructure used to store each
 section. Used as the argument to <code>defaultdict</code> below.</p>
@@ -347,10 +406,10 @@ section. Used as the argument to <code>defaultdict</code> below.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-70">
+          </tr><tr id="section-127">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-70">&#182;</a>
+                <a class="pilcrow" href="#section-127">&#182;</a>
               </div>
               <p>Read the whole source file into memory.</p>
             </td>
@@ -360,10 +419,10 @@ section. Used as the argument to <code>defaultdict</code> below.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-75">
+          </tr><tr id="section-132">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-75">&#182;</a>
+                <a class="pilcrow" href="#section-132">&#182;</a>
               </div>
               <p>The basic <code>sections</code> datastructure we'll use to keep track of code and
  documentation.</p>
@@ -373,10 +432,10 @@ section. Used as the argument to <code>defaultdict</code> below.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-80">
+          </tr><tr id="section-137">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-80">&#182;</a>
+                <a class="pilcrow" href="#section-137">&#182;</a>
               </div>
               <p>First pass: Parse all of the docstrings and get a list of lines we
  should skip when parsing the rest of the code. Modifies <code>sections</code> in
@@ -387,10 +446,10 @@ section. Used as the argument to <code>defaultdict</code> below.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-84">
+          </tr><tr id="section-141">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-84">&#182;</a>
+                <a class="pilcrow" href="#section-141">&#182;</a>
               </div>
               <p>Second pass: Parse the rest of the code, adding code and comments to the
  appropriate sections. Modifies <code>sections</code> in place.</p>
@@ -402,10 +461,10 @@ section. Used as the argument to <code>defaultdict</code> below.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-88">
+          </tr><tr id="section-145">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-88">&#182;</a>
+                <a class="pilcrow" href="#section-145">&#182;</a>
               </div>
               <p>Parse the given <code>src</code> to find any docstrings, add them to the
 appropriate place in <code>sections</code>, and return a <code>set</code> of line numbers where
@@ -416,10 +475,10 @@ the docstrings are. <strong>Note:</strong> Modifies <code>sections</code> in pla
 </pre></div>
 
             </td>
-          </tr><tr id="section-94">
+          </tr><tr id="section-151">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-94">&#182;</a>
+                <a class="pilcrow" href="#section-151">&#182;</a>
               </div>
               <p>Find any docstrings in the source code by walking its AST.</p>
             </td>
@@ -429,10 +488,10 @@ the docstrings are. <strong>Note:</strong> Modifies <code>sections</code> in pla
 </pre></div>
 
             </td>
-          </tr><tr id="section-99">
+          </tr><tr id="section-156">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-99">&#182;</a>
+                <a class="pilcrow" href="#section-156">&#182;</a>
               </div>
               <p>Add all of the docstrings we've found to the appropriate places in the
  <code>sections</code> datastructure. The corresponding code will be added later.</p>
@@ -443,10 +502,10 @@ the docstrings are. <strong>Note:</strong> Modifies <code>sections</code> in pla
 </pre></div>
 
             </td>
-          </tr><tr id="section-104">
+          </tr><tr id="section-161">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-104">&#182;</a>
+                <a class="pilcrow" href="#section-161">&#182;</a>
               </div>
               <p>Build a set of the line numbers where we found docstrings, so we know to
  skip them in the second pass.</p>
@@ -460,10 +519,10 @@ the docstrings are. <strong>Note:</strong> Modifies <code>sections</code> in pla
 </pre></div>
 
             </td>
-          </tr><tr id="section-110">
+          </tr><tr id="section-167">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-110">&#182;</a>
+                <a class="pilcrow" href="#section-167">&#182;</a>
               </div>
               <p>Parse the given <code>src</code> line by line to gather source code and comments
 into the appropriate places in <code>sections</code>. Any line numbers in
@@ -474,10 +533,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-117">
+          </tr><tr id="section-174">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-117">&#182;</a>
+                <a class="pilcrow" href="#section-174">&#182;</a>
               </div>
               <p>Iterate through each line of source code to gather up comments and code
  listings and add them to the sections structure.</p>
@@ -489,10 +548,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-121">
+          </tr><tr id="section-178">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-121">&#182;</a>
+                <a class="pilcrow" href="#section-178">&#182;</a>
               </div>
               <p>Skip any lines that were in docstrings</p>
             </td>
@@ -502,10 +561,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-128">
+          </tr><tr id="section-185">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-128">&#182;</a>
+                <a class="pilcrow" href="#section-185">&#182;</a>
               </div>
               <p>Are we looking at a comment? If so, and we do not have a current
  comment block, we're starting a new section. If we do have a current
@@ -523,10 +582,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-138">
+          </tr><tr id="section-195">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-138">&#182;</a>
+                <a class="pilcrow" href="#section-195">&#182;</a>
               </div>
               <p>Otherwise, we're looking at a line of code and we need to add it to
  the appropriate section, along with any preceding comments.</p>
@@ -536,10 +595,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-141">
+          </tr><tr id="section-198">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-141">&#182;</a>
+                <a class="pilcrow" href="#section-198">&#182;</a>
               </div>
               <p>If we have a current comment, that means we're starting a new
  section with this line of code.</p>
@@ -552,10 +611,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-150">
+          </tr><tr id="section-207">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-150">&#182;</a>
+                <a class="pilcrow" href="#section-207">&#182;</a>
               </div>
               <p>Otherwise, if we don't have a current section, we're at our
  first bit of code (aside from any module-level docstrings) and
@@ -568,10 +627,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-157">
+          </tr><tr id="section-214">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-157">&#182;</a>
+                <a class="pilcrow" href="#section-214">&#182;</a>
               </div>
               <p>If the current line is already in the <code>sections</code> datastructure,
  it is (probably) associated with a docstring from the first
@@ -584,10 +643,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-162">
+          </tr><tr id="section-219">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-162">&#182;</a>
+                <a class="pilcrow" href="#section-219">&#182;</a>
               </div>
               <p>Finally, append the current line of code to the current
  section's code block</p>
@@ -597,10 +656,10 @@ into the appropriate places in <code>sections</code>. Any line numbers in
 </pre></div>
 
             </td>
-          </tr><tr id="section-164">
+          </tr><tr id="section-221">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-164">&#182;</a>
+                <a class="pilcrow" href="#section-221">&#182;</a>
               </div>
               <p>Test the given line to see if it should be included. Excludes shebang
 lines, for now.</p>
@@ -613,23 +672,23 @@ lines, for now.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-172">
+          </tr><tr id="section-229">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-172">&#182;</a>
+                <a class="pilcrow" href="#section-229">&#182;</a>
               </div>
               <p>Renders the given sections, which should be the result of calling
 <code>parse</code> on a source code file, into HTML.</p>
             </td>
             <td class="code">
-              <div class="highlight"><pre><span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">sections</span><span class="p">):</span>
+              <div class="highlight"><pre><span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">sections</span><span class="p">,</span> <span class="n">sources</span><span class="p">):</span>
 </pre></div>
 
             </td>
-          </tr><tr id="section-179">
+          </tr><tr id="section-236">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-179">&#182;</a>
+                <a class="pilcrow" href="#section-236">&#182;</a>
               </div>
               <p>Transform the <code>sections</code> <code>dict</code> we were given into a format suitable for
  our Mustache template. Along the way, preprocess each block of
@@ -651,10 +710,10 @@ lines, for now.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-192">
+          </tr><tr id="section-249">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-192">&#182;</a>
+                <a class="pilcrow" href="#section-249">&#182;</a>
               </div>
               <p>Preprocess the given <code>docs</code>, which should be a <code>list</code> of strings, by
 joining them together and running them through Markdown.</p>
@@ -666,10 +725,10 @@ joining them together and running them through Markdown.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-199">
+          </tr><tr id="section-256">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-199">&#182;</a>
+                <a class="pilcrow" href="#section-256">&#182;</a>
               </div>
               <p>Preprocess the given code, which should be a <code>list</code> of strings, by
 joining them together and running them through the Pygments syntax
@@ -685,10 +744,26 @@ highlighter.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-211">
+          </tr><tr id="section-267">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-211">&#182;</a>
+                <a class="pilcrow" href="#section-267">&#182;</a>
+              </div>
+              <p>Creates an appropriate output path for the given source file and output
+directory. The output file name will be the name of the source file
+without its extension.</p>
+            </td>
+            <td class="code">
+              <div class="highlight"><pre><span class="k">def</span> <span class="nf">make_output_path</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
+    <span class="n">name</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">.html&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+</pre></div>
+
+            </td>
+          </tr><tr id="section-276">
+            <td class="docs">
+              <div class="pilwrap">
+                <a class="pilcrow" href="#section-276">&#182;</a>
               </div>
               <p>A <code>NodeVisitor</code> subclass that walks an Abstract Syntax Tree and gathers
 up and notes the positions of any docstrings it finds.</p>
@@ -700,10 +775,10 @@ up and notes the positions of any docstrings it finds.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-220">
+          </tr><tr id="section-285">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-220">&#182;</a>
+                <a class="pilcrow" href="#section-285">&#182;</a>
               </div>
               <p>Docstrings will be tracked as a list of 4-tuples that contain the
  docstring, the line of the code to which it applies, its starting
@@ -716,10 +791,10 @@ up and notes the positions of any docstrings it finds.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-224">
+          </tr><tr id="section-289">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-224">&#182;</a>
+                <a class="pilcrow" href="#section-289">&#182;</a>
               </div>
               <p>A method to be called when visiting any node that might have an
 associated docstring (ie, module, function and class nodes). This uses
@@ -734,10 +809,10 @@ which node we're currently looking at.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-235">
+          </tr><tr id="section-300">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-235">&#182;</a>
+                <a class="pilcrow" href="#section-300">&#182;</a>
               </div>
               <p>Use the <code>_visit_docstring_node</code> method when visiting all of these nodes.</p>
             </td>
@@ -748,10 +823,10 @@ which node we're currently looking at.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-239">
+          </tr><tr id="section-304">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-239">&#182;</a>
+                <a class="pilcrow" href="#section-304">&#182;</a>
               </div>
               <p>We need to actually visit the nodes representing the docstrings to
 record their positions. Docstring nodes show up as <code>Expr</code> nodes whose
@@ -763,10 +838,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-247">
+          </tr><tr id="section-312">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-247">&#182;</a>
+                <a class="pilcrow" href="#section-312">&#182;</a>
               </div>
               <p>Adjust for 0-based line counting</p>
             </td>
@@ -775,10 +850,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-252">
+          </tr><tr id="section-317">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-252">&#182;</a>
+                <a class="pilcrow" href="#section-317">&#182;</a>
               </div>
               <p>Module docstrings have to have their starting lines and targets
  calculated manually, since <code>ast.Module</code> objects have no line
@@ -792,10 +867,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-260">
+          </tr><tr id="section-325">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-260">&#182;</a>
+                <a class="pilcrow" href="#section-325">&#182;</a>
               </div>
               <p>For all other nodes, just assume that the target is on the
  previous line. <strong>TODO:</strong> This probably breaks on, e.g.,
@@ -808,10 +883,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-267">
+          </tr><tr id="section-332">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-267">&#182;</a>
+                <a class="pilcrow" href="#section-332">&#182;</a>
               </div>
               <p>Add the sanitized version of the current docstring, its target
  and its starting and finishing line numbers to our list of
@@ -823,10 +898,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-273">
+          </tr><tr id="section-338">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-273">&#182;</a>
+                <a class="pilcrow" href="#section-338">&#182;</a>
               </div>
               <p>Reset the accounting variables even if we didn't find a docstring,
  so that we don't accidentally add "unattached" docstrings to
@@ -838,25 +913,11 @@ values are <code>Str</code> nodes.</p>
             <span class="bp">self</span><span class="o">.</span><span class="n">current_doc</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">DocStringVisitor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">generic_visit</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-</pre></div>
-
-            </td>
-          </tr><tr id="section-280">
-            <td class="docs">
-              <div class="pilwrap">
-                <a class="pilcrow" href="#section-280">&#182;</a>
-              </div>
-              <p>Main method to be used when run from the command line.</p>
-            </td>
-            <td class="code">
-              <div class="highlight"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
-        <span class="n">document</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">)</span>
 
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">main</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">DEFAULT_OUTPUT_DIR</span><span class="p">)</span>
+        <span class="n">document</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">DEFAULT_OUTPUT_DIR</span><span class="p">)</span>
 </pre></div>
 
             </td>
