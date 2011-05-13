@@ -59,6 +59,8 @@ from collections import defaultdict
 DEFAULT_OUTPUT_DIR = 'docs'
 COMMENT_PATTERN = '^\s*#'
 
+DYCCO_ROOT = os.path.dirname(__file__)
+
 
 ### Documentation Generation
 def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
@@ -245,7 +247,7 @@ def render(title, sections, sources):
         'title': title,
         'sections': sections
         }
-    with open('template.html') as f:
+    with open(os.path.join(DYCCO_ROOT, 'template.html')) as f:
         return pystache.render(f.read(), context)
 
 #### Preprocessors
