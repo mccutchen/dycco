@@ -228,13 +228,17 @@ def parse_code(src, sections, skip_lines=set()):
                 current_section = i
 
             # Finally, append the current line of code to the current
-            # section's code block.
-            sections[current_section]['code'].append(line)
+            # section's code block. Skip any empty leading lines of code,
+            # which will not have a current section.
+            if current_section:
+                sections[current_section]['code'].append(line)
 
 ### Rendering
 def render(title, sections, sources):
     """Renders the given sections, which should be the result of calling
-    `parse` on a source code file, into HTML.
+    `parse` on a source code file, into HTML. **FIXME:** The `sources`
+    argument is ignored at the moment, but will eventually be used to generate
+    linked documentation.
     """
     # Transform the `sections` `dict` we were given into a format suitable for
     # our Mustache template. Along the way, preprocess each block of
