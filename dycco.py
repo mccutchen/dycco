@@ -118,23 +118,15 @@ def parse(src):
     simplicity's sake.
     """
 
-    def section():
-        """A callable that will generate the datastructure used to store each
-        section. Used as the argument to `defaultdict` below.
-        """
-        return { 'docs': [],
-                 'code': [], }
-
     # The basic `sections` datastructure we'll use to keep track of code and
     # documentation.
-    sections = defaultdict(section)
+    sections = make_sections()
 
-    # First pass: Parse all of the docstrings and get a list of lines we
-    # should skip when parsing the rest of the code. Modifies `sections` in
-    # place.
+    # First, parse all of the docstrings and get a list of lines we should
+    # skip when parsing the rest of the code. Modifies `sections` in place.
     skip_lines = parse_docstrings(src, sections)
 
-    # Second pass: Parse the rest of the code, adding code and comments to the
+    # Second, parse the rest of the code, adding code and comments to the
     # appropriate sections. Modifies `sections` in place.
     parse_code(src, sections, skip_lines)
 
@@ -277,6 +269,17 @@ def preprocess_code(code):
 
 
 ### Support Functions
+def make_sections():
+    """Creates the special `sections` datastructure used to hold parsed
+    documentation and code.
+    """
+    # A callable for use as the default object in the `defaultdict` we use to
+    # represent the sections.
+    def section():
+        return { 'docs': [],
+                 'code': [], }
+    return defaultdict(section)
+
 def should_filter(line, num):
     """Test the given line to see if it should be included. Excludes shebang
     lines, for now.
