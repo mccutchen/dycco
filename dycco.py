@@ -50,6 +50,7 @@ from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
 
 import ast
+import datetime
 import os
 import re
 import sys
@@ -252,9 +253,13 @@ def render(title, sections, sources):
         'code_html': preprocess_code(value['code'])
     } for key, value in sorted(sections.items())]
 
+    # We include a timestamp in the footer.
+    date = datetime.datetime.utcnow().strftime('%d %b %Y')
+
     context = {
         'title': title,
-        'sections': sections
+        'sections': sections,
+        'date': date,
         }
     with open(os.path.join(DYCCO_ROOT, 'template.html')) as f:
         return pystache.render(f.read(), context)
