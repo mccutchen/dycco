@@ -25,11 +25,11 @@ documentation. It does so using a two-pass parsing stage, first walking the
 *Abstract Syntax Tree* of the code to gather up docstrings, then examining the
 code line-by-line to extract comments.
 
-[Docco][docco]'s gorgeous HTML and CSS are taken verbatim. Like
+Dycco's HTML and CSS are taken straight from [Docco][docco], but, like
 [Pycco][pycco], Dycco uses [Mustache][mustache] templates rendered by
 [Pystache][pystache]. The first version of Dycco's templates and CSS were
 taken straight from [Pycco][pycco], then updated to match the latest changes
-to [Docco][docco]'s output.
+to [Docco][docco]'s.
 
 [docco]: http://jashkenas.github.com/docco/
 [markdown]: http://daringfireball.net/projects/markdown/
@@ -60,7 +60,7 @@ DEFAULT_OUTPUT_DIR = 'docs'
 COMMENT_PATTERN = '^\s*#'
 
 
-### Main Documentation Generation Function
+### Documentation Generation
 def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
     """Generates documentation for the Python files at the given `paths` by
     parsing each file into pairs of documentation and source code and
@@ -96,10 +96,10 @@ def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
 
 ### Parsing the Source
 def parse(src):
-    """Parse the source code at the given path, in two passes. The first pass
-    walks the *Abstract Syntax Tree* of the code, gathering up any
-    docstrings. The second pass processes the code line by line, grouping the
-    code into sections based on docstrings and comments.
+    """Parse the given source code in two passes. The first pass walks the
+    *Abstract Syntax Tree* of the code, gathering up and noting the location
+    of any docstrings. The second pass processes the code line by line,
+    grouping the code into sections based on docstrings and comments.
 
     The data structure returned is a special `dict` whose keys are the line
     numbers where sections start, which map to `dict`s containing the docs and
