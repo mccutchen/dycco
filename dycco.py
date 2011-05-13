@@ -60,7 +60,7 @@ DEFAULT_OUTPUT_DIR = 'docs'
 COMMENT_PATTERN = '^\s*#'
 
 
-### Main Documentation Generation Functions
+### Main Documentation Generation Function
 def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
     """Generates documentation for the Python files at the given `paths` by
     parsing each file into pairs of documentation and source code and
@@ -94,9 +94,10 @@ def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
             with open(output_path, 'w') as f:
                 f.write(html)
 
+### Parsing the Source
 def parse(src):
     """Parse the source code at the given path, in two passes. The first pass
-    walks the Abstract Syntax Tree of the code, gathering up any
+    walks the *Abstract Syntax Tree* of the code, gathering up any
     docstrings. The second pass processes the code line by line, grouping the
     code into sections based on docstrings and comments.
 
@@ -115,9 +116,6 @@ def parse(src):
     The docs for each section can come from docstrings (the first pass) or
     from comments (the second pass). The line numbers start at zero, for
     simplicity's sake.
-
-    Any module-level documentation is stored in the section under the `None`
-    key, and will come before any other sections in the output.
     """
 
     def section():
@@ -142,6 +140,7 @@ def parse(src):
 
     return sections
 
+#### First Pass
 def parse_docstrings(src, sections):
     """Parse the given `src` to find any docstrings, add them to the
     appropriate place in `sections`, and return a `set` of line numbers where
@@ -164,6 +163,7 @@ def parse_docstrings(src, sections):
 
     return skip_lines
 
+#### Second Pass
 def parse_code(src, sections, skip_lines=set()):
     """Parse the given `src` line by line to gather source code and comments
     into the appropriate places in `sections`. Any line numbers in
@@ -196,26 +196,38 @@ def parse_code(src, sections, skip_lines=set()):
             # If we have a current comment, that means we're starting a new
             # section with this line of code.
             if current_comment:
-                sections[i]['docs'].append(current_comment)
+                docs = sections[i]['docs']
+                # If we've already got docs for this section, that (hopefully)
+                # means we're looking at a function/class def that has a
+                # docstring, but that the current comments precede the def. In
+                # this case, we prepend the comments, so they come before the
+                # docstring.
+                if docs:
+                    docs.insert(0, current_comment)
+                else:
+                    docs.append(current_comment)
+                # The next comment we encounter will start a new section, but
+                # any lines of code that follow this one belong to this
+                # section.
                 current_comment = None
                 current_section = i
 
-            # Otherwise, if we don't have a current section, we're at our
-            # first bit of code (aside from any module-level docstrings) and
-            # are starting a new section. But we want to skip any empty
-            # leading blank lines.
+            # We don't have a current section, so we should be at our first
+            # bit of code (aside from any module-level docstrings), and should
+            # start a new section. But we want to skip any empty leading blank
+            # lines.
             elif current_section is None and line:
                 current_section = i
 
             # If the current line is already in the `sections` datastructure,
             # it is (probably) associated with a docstring from the first
-            # pass, and we should add it to that section instead of whatever
+            # pass, and we should  it to that section instead of whatever
             # current section we have.
             if i in sections:
                 current_section = i
 
             # Finally, append the current line of code to the current
-            # section's code block
+            # section's code block.
             sections[current_section]['code'].append(line)
 
 def should_filter(line, num):
