@@ -153,7 +153,7 @@ def parse_docstrings(src, sections):
     # Add all of the docstrings we've found to the appropriate places in the
     # `sections` datastructure. The corresponding code will be added later.
     for doc, target_line, _, _ in visitor.docstrings:
-        sections[target_line]['docs'].append(doc)
+        sections[target_line]['docs'].append(doc.strip())
 
     # Build a set of the line numbers where we found docstrings, so we know to
     # skip them in the second pass.
@@ -196,6 +196,7 @@ def parse_code(src, sections, skip_lines=set()):
             # If we have a current comment, that means we're starting a new
             # section with this line of code.
             if current_comment:
+                current_comment = current_comment.strip()
                 docs = sections[i]['docs']
                 # If we've already got docs for this section, that (hopefully)
                 # means we're looking at a function/class def that has a
