@@ -63,6 +63,7 @@ DYCCO_ROOT = os.path.dirname(__file__)
 
 
 ### Documentation Generation
+
 def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
     """Generates documentation for the Python files at the given `paths` by
     parsing each file into pairs of documentation and source code and
@@ -96,7 +97,9 @@ def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
             with open(output_path, 'w') as f:
                 f.write(html)
 
+
 ### Parsing the Source
+
 def parse(src):
     """Parse the given source code in two passes. The first pass walks the
     *Abstract Syntax Tree* of the code, gathering up and noting the location
@@ -134,7 +137,9 @@ def parse(src):
 
     return sections
 
+
 #### First Pass
+
 def parse_docstrings(src, sections):
     """Parse the given `src` to find any docstrings, add them to the
     appropriate place in `sections`, and return a `set` of line numbers where
@@ -157,7 +162,9 @@ def parse_docstrings(src, sections):
 
     return skip_lines
 
+
 #### Second Pass
+
 def parse_code(src, sections, skip_lines=set()):
     """Parse the given `src` line by line to gather source code and comments
     into the appropriate places in `sections`. Any line numbers in
@@ -227,7 +234,9 @@ def parse_code(src, sections, skip_lines=set()):
             if current_section:
                 sections[current_section]['code'].append(line)
 
+
 ### Rendering
+
 def render(title, sections, sources):
     """Renders the given sections, which should be the result of calling
     `parse` on a source code file, into HTML. **FIXME:** The `sources`
@@ -250,7 +259,9 @@ def render(title, sections, sources):
     with open(os.path.join(DYCCO_ROOT, 'template.html')) as f:
         return pystache.render(f.read(), context)
 
+
 #### Preprocessors
+
 def preprocess_docs(docs):
     """Preprocess the given `docs`, which should be a `list` of strings, by
     joining them together and running them through Markdown.
@@ -271,6 +282,7 @@ def preprocess_code(code):
 
 
 ### Support Functions
+
 def make_sections():
     """Creates the special `sections` datastructure used to hold parsed
     documentation and code.
@@ -300,6 +312,7 @@ def make_output_path(filename, output_dir):
 
 
 #### AST Parsing
+
 class DocStringVisitor(ast.NodeVisitor):
     """A `NodeVisitor` subclass that walks an Abstract Syntax Tree and gathers
     up and notes the positions of any docstrings it finds.
