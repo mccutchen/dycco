@@ -230,14 +230,7 @@ def parse_code(src, sections, skip_lines=set()):
             # section's code block.
             sections[current_section]['code'].append(line)
 
-def should_filter(line, num):
-    """Test the given line to see if it should be included. Excludes shebang
-    lines, for now.
-    """
-    if num == 0 and line.startswith('#!'):
-        return True
-    return False
-
+### Rendering
 def render(title, sections, sources):
     """Renders the given sections, which should be the result of calling
     `parse` on a source code file, into HTML.
@@ -258,6 +251,7 @@ def render(title, sections, sources):
     with open('template.html') as f:
         return pystache.render(f.read(), context)
 
+#### Preprocessors
 def preprocess_docs(docs):
     """Preprocess the given `docs`, which should be a `list` of strings, by
     joining them together and running them through Markdown.
@@ -276,6 +270,16 @@ def preprocess_code(code):
     result = highlight('\n'.join(code), lexer, formatter)
     return result
 
+
+### Support Functions
+def should_filter(line, num):
+    """Test the given line to see if it should be included. Excludes shebang
+    lines, for now.
+    """
+    if num == 0 and line.startswith('#!'):
+        return True
+    return False
+
 def make_output_path(filename, output_dir):
     """Creates an appropriate output path for the given source file and output
     directory. The output file name will be the name of the source file
@@ -285,6 +289,7 @@ def make_output_path(filename, output_dir):
     return os.path.join(output_dir, '%s.html' % name)
 
 
+#### AST Parsing
 class DocStringVisitor(ast.NodeVisitor):
     """A `NodeVisitor` subclass that walks an Abstract Syntax Tree and gathers
     up and notes the positions of any docstrings it finds.
@@ -354,6 +359,13 @@ class DocStringVisitor(ast.NodeVisitor):
         super(DocStringVisitor, self).generic_visit(node)
 
 
+### Command Line Entry Point
+# When executed from the command line, the paths to one or more Python source
+# files should be provided. Documentation will be generated and written into a
+# `docs/` directory inside the current directory.
 if __name__ == '__main__':
+    # For now, only try to generate documentation if we did get some command
+    # line arguments. This allows the file to still be executed in ipython or
+    # Emacs's python-mode without failing.
     if len(sys.argv) > 1:
         document(sys.argv[1:], DEFAULT_OUTPUT_DIR)
