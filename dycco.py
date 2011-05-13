@@ -75,7 +75,7 @@ def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
 
     # Make sure the directory exists
     if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
-        os.path.makedirs(output_dir)
+        os.makedirs(output_dir)
 
     # Build a list of (path, filename, output_path) tuples, which will be used
     # to build the links to other source code docs in the templates
