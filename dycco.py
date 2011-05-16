@@ -124,8 +124,8 @@ def parse(src):
     simplicity's sake.
     """
 
-    # The basic `sections` datastructure we'll use to keep track of code and
-    # documentation.
+    # Create the basic `sections` datastructure we'll use to keep track of
+    # code and documentation.
     sections = make_sections()
 
     # First, parse all of the docstrings and get a list of lines we should
@@ -152,16 +152,10 @@ def parse_docstrings(src, sections):
 
     # Add all of the docstrings we've found to the appropriate places in the
     # `sections` datastructure. The corresponding code will be added later.
-    for doc, target_line, _, _ in visitor.docstrings:
-        sections[target_line]['docs'].append(doc.strip())
+    for target_line, doc in visitor.docstrings.iteritems():
+        sections[target_line]['docs'].append(doc)
 
-    # Build a set of the line numbers where we found docstrings, so we know to
-    # skip them in the second pass.
-    skip_lines = set()
-    for doc, _, start_line, end_line in visitor.docstrings:
-        skip_lines.update(xrange(start_line, end_line + 1))
-
-    return skip_lines
+    return visitor.docstring_lines
 
 
 #### Second Pass
@@ -328,10 +322,16 @@ class DocStringVisitor(ast.NodeVisitor):
     """
 
     def __init__(self):
-        # Docstrings will be tracked as a list of 4-tuples that contain the
-        # docstring, the line of the code to which it applies, its starting
-        # line and its ending line.
-        self.docstrings = []
+        # Docstrings will be tracked as a dict mapping 0-based target line
+        # numbers to cleaned up docstrings.
+        self.docstrings = {}
+
+        # Track the line numbers where docstrings are found, so they can be
+        # skipped when processing the source code line-by-line.
+        self.docstring_lines = set()
+
+        # Keep track of the current module, class, or function node we're
+        # looking at, if any.
         self.current_node = None
         self.current_doc = None
 
@@ -380,11 +380,10 @@ class DocStringVisitor(ast.NodeVisitor):
                 start_line = end_line - (line_count - 1)
                 target_line = self.current_node.lineno - 1
 
-            # Add the sanitized version of the current docstring, its target
-            # and its starting and finishing line numbers to our list of
-            # docstrings.
-            self.docstrings.append(
-                (self.current_doc, target_line, start_line, end_line))
+            # Mark the positions of this node and its documentation.
+            assert target_line not in self.docstrings
+            self.docstrings[target_line] = self.current_doc.strip()
+            self.docstring_lines.update(xrange(start_line, end_line + 1))
 
         # Reset the accounting variables even if we didn't find a docstring,
         # so that we don't accidentally add "unattached" docstrings to
