@@ -81,8 +81,8 @@ def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
     if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
-    # Build a list of (path, filename, output_path) tuples, which will be used
-    # to build the links to other source code docs in the templates
+    # Build a list of `(path, filename, output_path)` tuples, which will be
+    # used to build the links to other source code docs in the templates
     filenames = map(os.path.basename, paths)
     output_paths = [make_output_path(f, output_dir) for f in filenames]
     sources = zip(paths, filenames, output_paths)
@@ -182,7 +182,6 @@ def parse_code(src, sections, skip_lines=set()):
             comment = re.sub(COMMENT_PATTERN, '', line)
             if current_comment is None:
                 current_comment = comment
-                current_section = None
             else:
                 current_comment += '\n' + comment
 
@@ -224,7 +223,7 @@ def parse_code(src, sections, skip_lines=set()):
                 current_section = i
 
             # Finally, append the current line of code to the current
-            # section's code block. Skip any empty leading lines of code,
+            # section's code block. Skips any empty leading lines of code,
             # which will not have a current section.
             if current_section:
                 sections[current_section]['code'].append(line)
@@ -266,7 +265,7 @@ def preprocess_docs(docs):
     joining them together and running them through Markdown.
     """
     assert isinstance(docs, list)
-    return markdown.markdown('\n\n'.join(docs))
+    return markdown.markdown('\n\n'.join(filter(None, docs)))
 
 def preprocess_code(code):
     """Preprocess the given code, which should be a `list` of strings, by
@@ -343,6 +342,12 @@ class DocStringVisitor(ast.NodeVisitor):
         """
         self.current_node = node
         self.current_doc = ast.get_docstring(node)
+        # Mark the place of any function or class definitions without
+        # docstrings, to ensure that a new section will be started for every
+        # def when rendering.
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef))\
+                and not self.current_doc:
+            self.docstrings[node.lineno - 1] = None
         super(DocStringVisitor, self).generic_visit(node)
 
     # Use the `_visit_docstring_node` method when visiting all of these nodes.
