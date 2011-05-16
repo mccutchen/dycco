@@ -357,23 +357,28 @@ class DocStringVisitor(ast.NodeVisitor):
         """
         if isinstance(node.value, ast.Str) and self.current_node:
 
-            # Adjust for 0-based line counting
+            # Figure out where the docstring *ends*, accounting for 0-based
+            # line numbers.
             end_line = node.lineno - 1
 
-            # Module docstrings have to have their starting lines and targets
-            # calculated manually, since `ast.Module` objects have no line
-            # numbers.
+            # We need to know how many lines are in the docstring to figure
+            # out where it actually starts.
+            line_count = len(node.value.s.splitlines())
+
+            # `Module` nodes have to be handled differently, since they do not
+            # have a line number.
             if isinstance(self.current_node, ast.Module):
-                line_count = len(node.value.s.splitlines())
                 start_line = end_line - line_count
                 target_line = start_line
 
-            # For all other nodes, just assume that the target is on the
-            # previous line. **TODO:** This probably breaks on, e.g.,
-            # multiline function defs.
+            # The current node's `lineno` attribute will be where the
+            # function/class definition starts, taking decorators into
+            # account, so there may be a gap between the `target_line` and the
+            # `start_line` if the defintion includes decorators or spans
+            # multiple lines.
             else:
-                start_line = self.current_node.lineno
-                target_line = start_line - 1
+                start_line = end_line - (line_count - 1)
+                target_line = self.current_node.lineno - 1
 
             # Add the sanitized version of the current docstring, its target
             # and its starting and finishing line numbers to our list of
