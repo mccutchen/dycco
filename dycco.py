@@ -303,7 +303,11 @@ def should_filter(line, num):
     """Test the given line to see if it should be included. Excludes shebang
     lines, for now.
     """
+    # Filter shebang comments.
     if num == 0 and line.startswith('#!'):
+        return True
+    # Filter encoding specification comments.
+    if num < 2 and line.startswith('#') and re.search('coding[:=]', line):
         return True
     return False
 
