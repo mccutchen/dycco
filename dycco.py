@@ -381,7 +381,7 @@ class DocStringVisitor(ast.NodeVisitor):
             # `Module` nodes have to be handled differently, since they do not
             # have a line number.
             if isinstance(self.current_node, ast.Module):
-                start_line = end_line - line_count
+                start_line = end_line - (line_count if line_count > 1 else 0)
                 target_line = start_line
 
             # The current node's `lineno` attribute will be where the
