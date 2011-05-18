@@ -348,7 +348,7 @@ class DocStringVisitor(ast.NodeVisitor):
         which node we're currently looking at.
         """
         self.current_node = node
-        self.current_doc = ast.get_docstring(node)
+        self.current_doc = ast.get_docstring(node) or ''
         # Mark the place of any function or class definitions without
         # docstrings, to ensure that a new section will be started for every
         # def when rendering.
@@ -367,7 +367,8 @@ class DocStringVisitor(ast.NodeVisitor):
         record their positions. Docstring nodes show up as `Expr` nodes whose
         values are `Str` nodes.
         """
-        if isinstance(node.value, ast.Str) and self.current_node:
+        if isinstance(node.value, ast.Str) and \
+                self.current_node and self.current_doc:
 
             # Figure out where the docstring *ends*, accounting for 0-based
             # line numbers.

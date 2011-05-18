@@ -510,7 +510,7 @@ into the appropriate places in <code>sections</code>. Any line numbers in
  which will not have a current section.</p>
             </td>
             <td class="code">
-              <div class="highlight"><pre>            <span class="k">if</span> <span class="n">current_section</span><span class="p">:</span>
+              <div class="highlight"><pre>            <span class="k">if</span> <span class="n">current_section</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
                 <span class="n">sections</span><span class="p">[</span><span class="n">current_section</span><span class="p">][</span><span class="s">&#39;code&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
 </pre></div>
 
@@ -813,7 +813,7 @@ which node we're currently looking at.</p>
             <td class="code">
               <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">_visit_docstring_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_node</span> <span class="o">=</span> <span class="n">node</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">current_doc</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">get_docstring</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_doc</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">get_docstring</span><span class="p">(</span><span class="n">node</span><span class="p">)</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span>
 </pre></div>
 
             </td>
@@ -859,14 +859,15 @@ values are <code>Str</code> nodes.</p>
             </td>
             <td class="code">
               <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">visit_Expr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Str</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_node</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Str</span><span class="p">)</span> <span class="ow">and</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_node</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_doc</span><span class="p">:</span>
 </pre></div>
 
             </td>
-          </tr><tr id="section-373">
+          </tr><tr id="section-374">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-373">&#182;</a>
+                <a class="pilcrow" href="#section-374">&#182;</a>
               </div>
               <p>Figure out where the docstring <em>ends</em>, accounting for 0-based
  line numbers.</p>
@@ -876,10 +877,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-377">
+          </tr><tr id="section-378">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-377">&#182;</a>
+                <a class="pilcrow" href="#section-378">&#182;</a>
               </div>
               <p>We need to know how many lines are in the docstring to figure
  out where it actually starts.</p>
@@ -889,10 +890,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-381">
+          </tr><tr id="section-382">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-381">&#182;</a>
+                <a class="pilcrow" href="#section-382">&#182;</a>
               </div>
               <p><code>Module</code> nodes have to be handled differently, since they do not
  have a line number.</p>
@@ -904,10 +905,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-390">
+          </tr><tr id="section-391">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-390">&#182;</a>
+                <a class="pilcrow" href="#section-391">&#182;</a>
               </div>
               <p>The current node's <code>lineno</code> attribute will be where the
  function/class definition starts, taking decorators into
@@ -922,10 +923,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-395">
+          </tr><tr id="section-396">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-395">&#182;</a>
+                <a class="pilcrow" href="#section-396">&#182;</a>
               </div>
               <p>Mark the positions of this node and its documentation.</p>
             </td>
@@ -936,10 +937,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-402">
+          </tr><tr id="section-403">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-402">&#182;</a>
+                <a class="pilcrow" href="#section-403">&#182;</a>
               </div>
               <p>Reset the accounting variables even if we didn't find a docstring,
  so that we don't accidentally add "unattached" docstrings to
@@ -954,10 +955,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-413">
+          </tr><tr id="section-414">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-413">&#182;</a>
+                <a class="pilcrow" href="#section-414">&#182;</a>
               </div>
               <h2>Command Line Entry Point</h2>
 <p>When executed from the command line, the paths to one or more Python source
@@ -969,10 +970,10 @@ values are <code>Str</code> nodes.</p>
 </pre></div>
 
             </td>
-          </tr><tr id="section-417">
+          </tr><tr id="section-418">
             <td class="docs">
               <div class="pilwrap">
-                <a class="pilcrow" href="#section-417">&#182;</a>
+                <a class="pilcrow" href="#section-418">&#182;</a>
               </div>
               <p>For now, only try to generate documentation if we did get some command
  line arguments. This allows the file to still be executed in ipython or
