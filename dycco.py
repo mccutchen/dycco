@@ -19,7 +19,7 @@ to generate documentation for each Python file in the current directory. The
 documentation is output into a `docs/` directory in the current directory.
 
 Dycco differs from Nick Fitzgerald's [Pycco][pycco], the first Python port of
-[Docco][docco] in that it only knows how to generate documenation on Python
+[Docco][docco], in that it only knows how to generate documenation on Python
 source code and it uses that specialization to more accurately parse
 documentation. It does so using a two-pass parsing stage, first walking the
 *Abstract Syntax Tree* of the code to gather up docstrings, then examining the
@@ -53,6 +53,7 @@ import ast
 import datetime
 import os
 import re
+import shutil
 import sys
 from collections import defaultdict
 
@@ -61,6 +62,9 @@ DEFAULT_OUTPUT_DIR = 'docs'
 COMMENT_PATTERN = '^\s*#'
 
 DYCCO_ROOT = os.path.dirname(__file__)
+DYCCO_RESOURCES = os.path.join(DYCCO_ROOT, 'resources')
+DYCCO_TEMPLATE = os.path.join(DYCCO_RESOURCES, 'template.html')
+DYCCO_CSS = os.path.join(DYCCO_RESOURCES, 'dycco.css')
 
 
 ### Documentation Generation
@@ -97,6 +101,9 @@ def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
             html = render(filename, sections, sources)
             with open(output_path, 'w') as f:
                 f.write(html)
+
+    # Copy the CSS into the output directory
+    shutil.copy(DYCCO_CSS, output_dir)
 
 
 ### Parsing the Source
@@ -254,7 +261,7 @@ def render(title, sections, sources):
         'sections': sections,
         'date': date,
         }
-    with open(os.path.join(DYCCO_ROOT, 'template.html')) as f:
+    with open(DYCCO_TEMPLATE) as f:
         return pystache.render(f.read(), context)
 
 
