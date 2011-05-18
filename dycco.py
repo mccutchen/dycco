@@ -232,7 +232,7 @@ def parse_code(src, sections, skip_lines=set()):
             # Finally, append the current line of code to the current
             # section's code block. Skips any empty leading lines of code,
             # which will not have a current section.
-            if current_section:
+            if current_section is not None:
                 sections[current_section]['code'].append(line)
 
 
