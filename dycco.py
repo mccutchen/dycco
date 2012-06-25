@@ -240,9 +240,8 @@ def parse_code(src, sections, skip_lines=set()):
 
 def render(title, sections, sources):
     """Renders the given sections, which should be the result of calling
-    `parse` on a source code file, into HTML. **FIXME:** The `sources`
-    argument is ignored at the moment, but will eventually be used to generate
-    linked documentation.
+    `parse` on a source code file, into HTML. The `sources` argument is used
+    to generate linked documentation.
     """
     # Transform the `sections` `dict` we were given into a format suitable for
     # our Mustache template. Along the way, preprocess each block of
@@ -253,12 +252,22 @@ def render(title, sections, sources):
         'code_html': preprocess_code(value['code'])
     } for key, value in sorted(sections.items())]
 
+    if len(sources) > 1:
+        mk_href = lambda path: os.path.splitext(os.path.basename(filename))[0]
+        sources = [{
+            'filename': filename,
+            'href': '%s.html' % mk_href(filename),
+        } for path, filename, output_path in sources]
+    else:
+        sources = []
+
     # We include a timestamp in the footer.
     date = datetime.datetime.utcnow().strftime('%d %b %Y')
 
     context = {
         'title': title,
         'sections': sections,
+        'sources': sources,
         'date': date,
         }
     with open(DYCCO_TEMPLATE) as f:
