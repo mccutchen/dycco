@@ -10,14 +10,6 @@ and presented as annotations alongside the source code, which is
 syntax-highlighted by [Pygments][pygments]. This page is the result of running
 Dycco against its [own source file][dycco].
 
-Currently, there is no setup for Dycco, so you'll have to fetch its [source
-code][dycco] and the prerequisites yourself. Dycco can then be run like so
-
-    dycco.py *.py
-
-to generate documentation for each Python file in the current directory. The
-documentation is output into a `docs/` directory in the current directory.
-
 Dycco differs from Nick Fitzgerald's [Pycco][pycco], the first Python port of
 [Docco][docco], in that it only knows how to generate documenation on Python
 source code and it uses that specialization to more accurately parse
@@ -40,25 +32,20 @@ to [Docco][docco]'s.
 [pystache]: https://github.com/defunkt/pystache
 """
 
-### Prerequisites
-# Dycco requires the `markdown`, `pystache` and `pygments` modules to be
-# installed.
+import ast
+import datetime
+import os
+import re
+import shutil
+from collections import defaultdict
+
 import markdown
 import pystache
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
 
-import ast
-import datetime
-import os
-import re
-import shutil
-import sys
-from collections import defaultdict
 
-
-DEFAULT_OUTPUT_DIR = 'docs'
 COMMENT_PATTERN = '^\s*#'
 
 DYCCO_ROOT = os.path.dirname(__file__)
@@ -69,7 +56,7 @@ DYCCO_CSS = os.path.join(DYCCO_RESOURCES, 'dycco.css')
 
 ### Documentation Generation
 
-def document(paths, output_dir=DEFAULT_OUTPUT_DIR):
+def document(paths, output_dir):
     """Generates documentation for the Python files at the given `paths` by
     parsing each file into pairs of documentation and source code and
     rendering those pairs into an HTML file. The `paths` param can be a `list`
@@ -274,6 +261,7 @@ def preprocess_docs(docs):
     assert isinstance(docs, list)
     return markdown.markdown('\n\n'.join(filter(None, docs)))
 
+
 def preprocess_code(code):
     """Preprocess the given code, which should be a `list` of strings, by
     joining them together and running them through the Pygments syntax
@@ -295,9 +283,12 @@ def make_sections():
     # A callable for use as the default object in the `defaultdict` we use to
     # represent the sections.
     def section():
-        return { 'docs': [],
-                 'code': [], }
+        return {
+            'docs': [],
+            'code': [],
+        }
     return defaultdict(section)
+
 
 def should_filter(line, num):
     """Test the given line to see if it should be included. Excludes shebang
@@ -310,6 +301,7 @@ def should_filter(line, num):
     if num < 2 and line.startswith('#') and re.search('coding[:=]', line):
         return True
     return False
+
 
 def make_output_path(filename, output_dir):
     """Creates an appropriate output path for the given source file and output
@@ -406,15 +398,3 @@ class DocStringVisitor(ast.NodeVisitor):
             self.current_doc = None
 
         super(DocStringVisitor, self).generic_visit(node)
-
-
-### Command Line Entry Point
-# When executed from the command line, the paths to one or more Python source
-# files should be provided. Documentation will be generated and written into a
-# `docs/` directory inside the current directory.
-if __name__ == '__main__':
-    # For now, only try to generate documentation if we did get some command
-    # line arguments. This allows the file to still be executed in ipython or
-    # Emacs's python-mode without failing.
-    if len(sys.argv) > 1:
-        document(sys.argv[1:], DEFAULT_OUTPUT_DIR)
