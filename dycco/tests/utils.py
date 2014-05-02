@@ -30,6 +30,7 @@ def with_setup_src(path):
         return decorated
     return decorator
 
+
 def with_setup(method):
     """A shortcut version of `with_setup_src` that determines the path to the
     corresponding source code file based on the test method's name (with any
@@ -39,5 +40,5 @@ def with_setup(method):
     source code files for multiple tests.
     """
     filename = '%s.py' % re.sub('^test_', '', method.__name__)
-    path = os.path.join(os.path.dirname(__file__), filename)
+    path = os.path.join(os.path.dirname(__file__), 'input', filename)
     return with_setup_src(path)(method)

@@ -4,7 +4,8 @@ body {
   font-size: 15px;
   line-height: 22px;
   color: #252519;
-  margin: 0; padding: 0;
+  margin: 0;
+  padding: 0 0 2em;
 }
 a {
   color: #261a3b;
@@ -191,4 +192,8 @@ footer {
   margin-top: 25px;
   background-color: #fff;
   border-top: 1px solid #e5e5ee;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
 }

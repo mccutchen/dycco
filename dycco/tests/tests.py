@@ -1,6 +1,5 @@
 import unittest
-import dycco
-from utils import with_setup, with_setup_src
+from utils import with_setup
 
 
 class ParserTests(unittest.TestCase):
