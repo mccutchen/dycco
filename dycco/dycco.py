@@ -53,39 +53,42 @@ DYCCO_RESOURCES = os.path.join(DYCCO_ROOT, 'resources')
 DYCCO_TEMPLATE = os.path.join(DYCCO_RESOURCES, 'template.html')
 DYCCO_CSS = os.path.join(DYCCO_RESOURCES, 'dycco.css')
 
+# For Python 2 & 3 compatibility
+try:
+    string_type = basestring
+except NameError:
+    string_type = str
+
 
 ### Documentation Generation
 
-def document(paths, output_dir):
-    """Generates documentation for the Python files at the given `paths` by
-    parsing each file into pairs of documentation and source code and
-    rendering those pairs into an HTML file. The `paths` param can be a `list`
-    of paths or a single `str` path.
+def document(input_paths, output_dir):
+    """Generates documentation for the Python files at the given `input_paths`
+    by parsing each file into pairs of documentation and source code and
+    rendering those pairs into an HTML file.
+
+    The `input_paths` param can be a `list` of paths or a single `str` path.
     """
 
     # If we get a single path, stick it in a list so we can still pretend
     # we're operating on multiple paths.
-    if isinstance(paths, basestring):
-        paths = [paths]
+    if isinstance(input_paths, string_type):
+        input_paths = [input_paths]
 
     # Make sure the directory exists
     if not os.path.exists(output_dir) or not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
-    # Build a list of `(path, filename, output_path)` tuples, which will be
-    # used to build the links to other source code docs in the templates
-    filenames = map(os.path.basename, paths)
-    output_paths = [make_output_path(f, output_dir) for f in filenames]
-    sources = zip(paths, filenames, output_paths)
-
     # Parse each input file into sections, render the sections as HTML into a
     # string, and create or overwrite the documentation at the appropriate
     # output path.
-    for path, filename, output_path in sources:
-        with open(path) as f:
+    for input_path in input_paths:
+        filename = os.path.basename(input_path)
+        output_path = make_output_path(filename, output_dir)
+        with open(input_path) as f:
             src = f.read()
             sections = parse(src)
-            html = render(filename, sections, sources)
+            html = render(filename, sections)
             with open(output_path, 'w') as f:
                 f.write(html)
 
@@ -146,7 +149,7 @@ def parse_docstrings(src, sections):
 
     # Add all of the docstrings we've found to the appropriate places in the
     # `sections` datastructure. The corresponding code will be added later.
-    for target_line, doc in visitor.docstrings.iteritems():
+    for target_line, doc in visitor.docstrings.items():
         sections[target_line]['docs'].append(doc)
 
     return visitor.docstring_lines
@@ -225,11 +228,9 @@ def parse_code(src, sections, skip_lines=set()):
 
 ### Rendering
 
-def render(title, sections, sources):
+def render(title, sections):
     """Renders the given sections, which should be the result of calling
-    `parse` on a source code file, into HTML. **FIXME:** The `sources`
-    argument is ignored at the moment, but will eventually be used to generate
-    linked documentation.
+    `parse` on a source code file, into HTML.
     """
     # Transform the `sections` `dict` we were given into a format suitable for
     # our Mustache template. Along the way, preprocess each block of
@@ -388,7 +389,7 @@ class DocStringVisitor(ast.NodeVisitor):
             # Mark the positions of this node and its documentation.
             assert target_line not in self.docstrings
             self.docstrings[target_line] = self.current_doc.strip()
-            self.docstring_lines.update(xrange(start_line, end_line + 1))
+            self.docstring_lines.update(range(start_line, end_line + 1))
 
         # Reset the accounting variables even if we didn't find a docstring,
         # so that we don't accidentally add "unattached" docstrings to

@@ -8,10 +8,10 @@ from .dycco import document
 def main(paths, output_dir):
     try:
         document(paths, output_dir)
-    except IOError, e:
+    except IOError as e:
         logging.error('Unable to open file: %s', e)
         return 1
-    except Exception, e:
+    except Exception as e:
         logging.error('An error occurred: %s', e)
         return 1
     else:
