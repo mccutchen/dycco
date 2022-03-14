@@ -88,4 +88,4 @@ def decorated_function_definition(function, which, takes, many, args, whose,
     """A *decorated* long function definition With some very important
     documentation.
     """
-    print 'Hello!'
+    print('Hello!')

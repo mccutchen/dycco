@@ -74,7 +74,7 @@ Credits
 Dycco is just a simple re-implementation of `Docco`_, with some inspiration and
 template code from its primary Python port `Pycco`_.
 
-.. _Docco: http://jashkenas.github.com/docco/
-.. _Pycco: http://fitzgen.github.com/pycco/
+.. _Docco: https://ashkenas.com/docco/
+.. _Pycco: https://github.com/pycco-docs/pycco
 .. _pip: http://www.pip-installer.org/
 .. _its self-generated docs: https://mccutchen.github.io/dycco/

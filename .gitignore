@@ -1,3 +1,9 @@
 *.pyc
 MANIFEST
 dist
+.bzr
+.bzrignore
+.idea
+_*
+env/
+dycco.egg-info/

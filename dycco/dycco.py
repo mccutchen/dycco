@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-"""
-**Dycco** is another Python port of [Docco][docco], the quick-and-dirty,
+"""**Dycco** is another Python port of [Docco][docco], the quick-and-dirty,
 hundred-line-long, literate-programming-style documentation generator.
 
 Dycco reads Python source files and produces annotated source documentation in
@@ -23,12 +22,12 @@ Dycco's HTML and CSS are taken straight from [Docco][docco], but, like
 taken straight from [Pycco][pycco], then updated to match the latest changes
 to [Docco][docco]'s.
 
-[docco]: http://jashkenas.github.com/docco/
+[docco]: https://ashkenas.com/docco/
 [markdown]: http://daringfireball.net/projects/markdown/
 [pygments]: http://pygments.org/
 [dycco]: https://github.com/mccutchen/dycco
-[pycco]: http://fitzgen.github.com/pycco/
-[mustache]: http://mustache.github.com/
+[pycco]: https://github.com/pycco-docs/pycco
+[mustache]: https://github.com/peterldowns/python-mustache
 [pystache]: https://github.com/defunkt/pystache
 """
 
@@ -37,6 +36,7 @@ import datetime
 import os
 import re
 import shutil
+import io
 from collections import defaultdict
 
 import markdown
@@ -53,7 +53,11 @@ DYCCO_RESOURCES = os.path.join(DYCCO_ROOT, 'resources')
 DYCCO_TEMPLATE = os.path.join(DYCCO_RESOURCES, 'template.html')
 DYCCO_CSS = os.path.join(DYCCO_RESOURCES, 'dycco.css')
 
-# For Python 2 & 3 compatibility
+# We need a positive integer type
+
+
+# For Python 2 & 3 compatibility, although this code is unlikely
+# to work correctly for Python 2 any more
 try:
     string_type = basestring
 except NameError:
@@ -85,12 +89,12 @@ def document(input_paths, output_dir):
     for input_path in input_paths:
         filename = os.path.basename(input_path)
         output_path = make_output_path(filename, output_dir)
-        with open(input_path) as f:
-            src = f.read()
+        with open(input_path) as f_input:
+            src = f_input.read()
             sections = parse(src)
             html = render(filename, sections)
-            with open(output_path, 'w') as f:
-                f.write(html)
+            with open(output_path, 'w') as f_output:
+                f_output.write(html)
 
     # Copy the CSS into the output directory
     shutil.copy(DYCCO_CSS, output_dir)
@@ -98,7 +102,7 @@ def document(input_paths, output_dir):
 
 ### Parsing the Source
 
-def parse(src):
+def parse(src:string_type) -> defaultdict:
     """Parse the given source code in two passes. The first pass walks the
     *Abstract Syntax Tree* of the code, gathering up and noting the location
     of any docstrings. The second pass processes the code line by line,
@@ -107,7 +111,7 @@ def parse(src):
     The data structure returned is a special `dict` whose keys are the line
     numbers where sections start, which map to `dict`s containing the docs and
     code associated with those sections. The docs and code are stored as
-    lists, which will be joined in post processing.
+    lists, which will be joined in post processing by `render()`.
 
     It will look a little like this:
 
@@ -125,7 +129,7 @@ def parse(src):
     # code and documentation.
     sections = make_sections()
 
-    # First, parse all of the docstrings and get a list of lines we should
+    # First, parse all of the docstrings and get a list (set) of lines we should
     # skip when parsing the rest of the code. Modifies `sections` in place.
     skip_lines = parse_docstrings(src, sections)
 
@@ -138,7 +142,7 @@ def parse(src):
 
 #### First Pass
 
-def parse_docstrings(src, sections):
+def parse_docstrings(src:string_type, sections:defaultdict) -> set:
     """Parse the given `src` to find any docstrings, add them to the
     appropriate place in `sections`, and return a `set` of line numbers where
     the docstrings are. **Note:** Modifies `sections` in place.
@@ -157,7 +161,7 @@ def parse_docstrings(src, sections):
 
 #### Second Pass
 
-def parse_code(src, sections, skip_lines=set()):
+def parse_code(src:string_type, sections:defaultdict, skip_lines:set):
     """Parse the given `src` line by line to gather source code and comments
     into the appropriate places in `sections`. Any line numbers in
     `skip_lines` are skipped. **Note:** Modifies `sections` in place.
@@ -228,7 +232,7 @@ def parse_code(src, sections, skip_lines=set()):
 
 ### Rendering
 
-def render(title, sections):
+def render(title, sections) -> string_type:
     """Renders the given sections, which should be the result of calling
     `parse` on a source code file, into HTML.
     """
@@ -255,7 +259,7 @@ def render(title, sections):
 
 #### Preprocessors
 
-def preprocess_docs(docs):
+def preprocess_docs(docs:list):
     """Preprocess the given `docs`, which should be a `list` of strings, by
     joining them together and running them through Markdown.
     """
@@ -263,7 +267,7 @@ def preprocess_docs(docs):
     return markdown.markdown('\n\n'.join(filter(None, docs)))
 
 
-def preprocess_code(code):
+def preprocess_code(code:list):
     """Preprocess the given code, which should be a `list` of strings, by
     joining them together and running them through the Pygments syntax
     highlighter.
@@ -277,17 +281,14 @@ def preprocess_code(code):
 
 ### Support Functions
 
-def make_sections():
+def make_sections() -> defaultdict:
     """Creates the special `sections` datastructure used to hold parsed
     documentation and code.
     """
     # A callable for use as the default object in the `defaultdict` we use to
     # represent the sections.
-    def section():
-        return {
-            'docs': [],
-            'code': [],
-        }
+    def section() -> dict:
+        return {'docs': [], 'code': [],}
     return defaultdict(section)
 
 
@@ -316,7 +317,7 @@ def make_output_path(filename, output_dir):
 #### AST Parsing
 
 class DocStringVisitor(ast.NodeVisitor):
-    """A `NodeVisitor` subclass that walks an Abstract Syntax Tree and gathers
+    """A `NodeVisitor` subclass that walks an Abstract Syntax Tree (AST) and gathers
     up and notes the positions of any docstrings it finds.
     """
 
@@ -345,57 +346,85 @@ class DocStringVisitor(ast.NodeVisitor):
         # Mark the place of any function or class definitions without
         # docstrings, to ensure that a new section will be started for every
         # def when rendering.
-        if isinstance(node, (ast.FunctionDef, ast.ClassDef))\
-                and not self.current_doc:
-            self.docstrings[node.lineno - 1] = None
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)) and not self.current_doc:
+            self.docstrings[node.lineno - 1 - len(node.decorator_list)] = None
         super(DocStringVisitor, self).generic_visit(node)
 
     # Use the `_visit_docstring_node` method when visiting all of these nodes.
     visit_Module = _visit_docstring_node
     visit_FunctionDef = _visit_docstring_node
     visit_ClassDef = _visit_docstring_node
+    visit_AsyncFunctionDef = _visit_docstring_node
 
     def visit_Expr(self, node):
         """We need to actually visit the nodes representing the docstrings to
         record their positions. Docstring nodes show up as `Expr` nodes whose
         values are `Str` nodes.
+
+        `ast.Str` was removed in Python 3.8 (well, deprecated and marked for
+        removal), so we need to play around a bit...
+
+        The Python docs state:
+
+        > A constant value. The value attribute of the Constant literal contains the Python
+        object it represents. The values represented can be simple types such as a number,
+        string or None, but also immutable container types (tuples and frozensets) if all
+        of their elements are constant.
+
+        ...or in English, the `node.value` **type** will be `ast.Constant` *but* you can get its
+        actual type via `node.value.value` for constant types (`ast.Call` types don't have a
+         `value.value` member).
         """
-        if isinstance(node.value, ast.Str) and \
-                self.current_node and self.current_doc:
+        if isinstance(node.value, ast.Constant):
+            if isinstance(node.value.value, string_type) and self.current_node and self.current_doc:
+                # Figure out where the docstring *ends*, accounting for 0-based line numbers.
+                # _Note that modules *have* got an end-line despite what the older code says._
+                end_line = node.end_lineno - 1
 
-            # Figure out where the docstring *ends*, accounting for 0-based
-            # line numbers.
-            end_line = node.lineno - 1
+                # We need to know how many lines are in the docstring to figure
+                # out where it actually starts. We might have triple-strings of
+                # various combinations:-
+                #
+                # >      """..."""
+                #
+                # or
+                #
+                # >      """...
+                # >      """
+                #
+                #  or
+                #
+                # >      """
+                # >      ..."""
+                #
+                #  or... well, you get the idea!
+                #
+                # `splitlines()` will handily split on the `\n`, so we can deal with all the above
+                # variants quite easily
+                line_count = len(node.value.s.splitlines())
+                if isinstance(self.current_node, ast.Module):
+                    start_line = end_line - (line_count if line_count > 1 else 0)
+                    target_line = start_line
 
-            # We need to know how many lines are in the docstring to figure
-            # out where it actually starts.
-            line_count = len(node.value.s.splitlines())
+                # The current node's `lineno` attribute will be where the
+                # function/class definition starts, taking decorators into
+                # account, so there may be a gap between the `target_line` and the
+                # `start_line` if the defintion includes decorators or spans
+                # multiple lines.
+                else:
+                    start_line = end_line - (line_count - 1)
+                    target_line = self.current_node.lineno - 1
 
-            # `Module` nodes have to be handled differently, since they do not
-            # have a line number.
-            if isinstance(self.current_node, ast.Module):
-                start_line = end_line - (line_count if line_count > 1 else 0)
-                target_line = start_line
+                # Mark the positions of this node and its documentation.
+                assert target_line not in self.docstrings
+                self.docstrings[target_line] = self.current_doc.strip()
+                self.docstring_lines.update(range(start_line, end_line + 1))
 
-            # The current node's `lineno` attribute will be where the
-            # function/class definition starts, taking decorators into
-            # account, so there may be a gap between the `target_line` and the
-            # `start_line` if the defintion includes decorators or spans
-            # multiple lines.
-            else:
-                start_line = end_line - (line_count - 1)
-                target_line = self.current_node.lineno - 1
-
-            # Mark the positions of this node and its documentation.
-            assert target_line not in self.docstrings
-            self.docstrings[target_line] = self.current_doc.strip()
-            self.docstring_lines.update(range(start_line, end_line + 1))
-
-        # Reset the accounting variables even if we didn't find a docstring,
-        # so that we don't accidentally add "unattached" docstrings to
-        # whatever class/def/module happened to come before them.
-        if self.current_node:
-            self.current_node = None
-            self.current_doc = None
+            # Reset the accounting variables even if we didn't find a docstring,
+            # so that we don't accidentally add "unattached" docstrings to
+            # whatever class/def/module happened to come before them.
+            if self.current_node:
+                self.current_node = None
+                self.current_doc = None
 
         super(DocStringVisitor, self).generic_visit(node)

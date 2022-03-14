@@ -19,15 +19,9 @@ def main(paths, output_dir):
 
 
 if __name__ == '__main__':
-    arg_parser = argparse.ArgumentParser(
-        prog='dycco',
-        description='Literate-style documentation generator.')
-    arg_parser.add_argument(
-        'source_file', nargs='+', default=sys.stdin,
-        help='Source files to document')
-    arg_parser.add_argument(
-        '-o', '--output-dir', default='docs',
-        help='Output directory (will be created if necessary)')
+    arg_parser = argparse.ArgumentParser(prog='dycco', description='Literate-style documentation generator.')
+    arg_parser.add_argument('source_file', nargs='+', default=sys.stdin, help='Source files to document')
+    arg_parser.add_argument('-o', '--output-dir', default='docs', help='Output directory (will be created if necessary)')
 
     args = arg_parser.parse_args()
     sys.exit(main(args.source_file, args.output_dir))
