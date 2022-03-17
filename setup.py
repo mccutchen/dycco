@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name='dycco',
-    version='1.0.1',
+    version='1.0.2',
     description='Literate-programming-style documentation generator.',
     long_description=read('README.rst'),
     url='https://github.com/mccutchen/dycco',
@@ -23,7 +23,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
         'Topic :: Documentation',
         'Topic :: Software Development :: Documentation',

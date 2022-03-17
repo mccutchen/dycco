@@ -10,7 +10,7 @@ This port of Docco has fewer features than the pimary Python port, `Pycco`_.
 For instance, Dycco can generate documentation for Python files and nothing
 else. It was written mostly as a reason to play with Python's AST.
 
-You should probably use `Pycco`_ instead.
+You can use `Pycco`_ instead.
 
 
 Installation

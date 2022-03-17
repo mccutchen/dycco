@@ -56,8 +56,8 @@ DYCCO_CSS = os.path.join(DYCCO_RESOURCES, 'dycco.css')
 # We need a positive integer type
 
 
-# For Python 2 & 3 compatibility, although this code is unlikely
-# to work correctly for Python 2 any more
+# For Python 2 & 3 compatibility (although this code is unlikely
+# to work correctly for Python 2 any more).
 try:
     string_type = basestring
 except NameError:

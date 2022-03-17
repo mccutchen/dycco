@@ -1,3 +1,5 @@
+v1.0.2  2022-03-17 -- New AST and Python 3 only operation
+
 v1.0.1, 2014-05-03 -- Python 3 compatibility.
 
 v1.0.0, 2014-05-02 -- Initial release.
