@@ -4,7 +4,8 @@
 hundred-line-long, literate-programming-style documentation generator.
 
 Dycco reads Python source files and produces annotated source documentation in
-HTML format. Comments and docstrings are formatted with [Markdown][markdown]
+HTML format. Comments and docstrings are formatted with [Markdown][markdown] or
+with [AsciiDoc3][asciidoc3]
 and presented as annotations alongside the source code, which is
 syntax-highlighted by [Pygments][pygments]. This page is the result of running
 Dycco against its [own source file][dycco].
@@ -29,6 +30,7 @@ to [Docco][docco]'s.
 [pycco]: https://github.com/pycco-docs/pycco
 [mustache]: https://github.com/peterldowns/python-mustache
 [pystache]: https://github.com/defunkt/pystache
+[asciidoc3]: https://asciidoc3.org/
 """
 
 import ast
@@ -46,14 +48,15 @@ from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
 
 # We have to pranny about a bit because of asciidoc3's strange behaviour
-# See: https://gitlab.com/asciidoc3/asciidoc3/-/issues/5 for this
+# See: [AttributeError: module 'asciidoc3' has no attribute 'messages'](https://gitlab.com/asciidoc3/asciidoc3/-/issues/5)
+# for the explanation
 
 import importlib.util
 
 ascii_location = None
 ascii_module = importlib.util.find_spec('asciidoc3')
 if ascii_module:
-    # We found a version, so record where it is for later use by `preprocess_docs()`
+    # We found a version of asciidoc3, so record where it is for later use by `preprocess_docs()`
     ascii_location = ascii_module.submodule_search_locations[0] + '/asciidoc3.py'
     import asciidoc3.asciidoc3api as AsciiDoc3API
 
@@ -85,7 +88,9 @@ def document(input_paths, output_dir, use_ascii:bool = False):
 
     The `input_paths` param can be a `list` of paths or a single `str` path.
 
-    Usually, markdown() is called, but if use_ascii is true, we'll use asciidoc3
+    Usually, markdown() is called, but if `use_ascii` is true, we'll use asciidoc3.
+    __main__.py looks for the -a / --asciidoc3 flag for this. By default, it's set
+    to False to retain the old behaviour of just using markdown.
     """
 
     # If we get a single path, stick it in a list so we can still pretend
@@ -252,7 +257,7 @@ def render(title, sections, use_ascii:bool = False) -> string_type:
     """
     # Transform the `sections` `dict` we were given into a format suitable for
     # our Mustache template. Along the way, preprocess each block of
-    # documentation and code, via Markdown and Pygments.
+    # documentation via Markdown or Asciidoc3 and code via Pygments.
     sections = [{
         'num': key,
         'docs_html': preprocess_docs(value['docs'], use_ascii),
@@ -271,33 +276,43 @@ def render(title, sections, use_ascii:bool = False) -> string_type:
         return pystache.render(f.read(), context)
 
 
-#### Preprocessors
+### Preprocessors
 
 def preprocess_docs(docs:list, use_ascii:bool) -> string_type:
     """Preprocess the given `docs`, which should be a `list` of strings, by
     joining them together and running them through Markdown or
-    asciidoc3 (which wants
+    asciidoc3.
     """
     assert isinstance(docs, list)
     if use_ascii:
+        # If we couldn't find asciidoc3, bail out with an error
         if ascii_location is None:
             raise ImportError('asciidoc3 was not found')
+        #### Documentation - Asciidoc3
+
         # Join the documentation sections together.
         # Sometimes we have `None` in entries - filter them out
+        # while we do so.
         collated_docs = '\n\n'.join(filter(None, docs))
         # Asciidoc3 likes file-like entities, so give it them
         dummy_infile = io.StringIO(collated_docs)
         dummy_outfile = io.StringIO()
+        # We have to force-feed asciidoc3 with its location or else
+        # it will choke and claim things are missing - this is
+        # especially true in virtual environments using `pip`
         asciidoc = AsciiDoc3API.AsciiDoc3API(ascii_location)
+
         asciidoc.options('--no-header-footer')
         # Call asciidoc - the output will be in `dummy_outfile`...
         asciidoc.execute(dummy_infile, dummy_outfile, backend='html5')
         # ...so return its content
         return dummy_outfile.getvalue()
     else:
+        #### Documentation - Markdown
         # Otherwise, just pass the joined-up document sections to markdown()
         return markdown.markdown('\n\n'.join(filter(None, docs)))
 
+#### Code
 
 def preprocess_code(code:list) -> string_type:
     """Preprocess the given code, which should be a `list` of strings, by
