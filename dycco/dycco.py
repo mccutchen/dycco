@@ -45,6 +45,18 @@ from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
 
+# We have to pranny about a bit because of asciidoc3's strange behaviour
+# See: https://gitlab.com/asciidoc3/asciidoc3/-/issues/5 for this
+
+import importlib.util
+
+ascii_location = None
+ascii_module = importlib.util.find_spec('asciidoc3')
+if ascii_module:
+    # We found a version, so record where it is for later use by `preprocess_docs()`
+    ascii_location = ascii_module.submodule_search_locations[0] + '/asciidoc3.py'
+    import asciidoc3.asciidoc3api as AsciiDoc3API
+
 
 COMMENT_PATTERN = '^\s*#'
 
@@ -66,12 +78,14 @@ except NameError:
 
 ### Documentation Generation
 
-def document(input_paths, output_dir):
+def document(input_paths, output_dir, use_ascii:bool = False):
     """Generates documentation for the Python files at the given `input_paths`
     by parsing each file into pairs of documentation and source code and
     rendering those pairs into an HTML file.
 
     The `input_paths` param can be a `list` of paths or a single `str` path.
+
+    Usually, markdown() is called, but if use_ascii is true, we'll use asciidoc3
     """
 
     # If we get a single path, stick it in a list so we can still pretend
@@ -92,7 +106,7 @@ def document(input_paths, output_dir):
         with open(input_path) as f_input:
             src = f_input.read()
             sections = parse(src)
-            html = render(filename, sections)
+            html = render(filename, sections, use_ascii)
             with open(output_path, 'w') as f_output:
                 f_output.write(html)
 
@@ -232,7 +246,7 @@ def parse_code(src:string_type, sections:defaultdict, skip_lines:set):
 
 ### Rendering
 
-def render(title, sections) -> string_type:
+def render(title, sections, use_ascii:bool = False) -> string_type:
     """Renders the given sections, which should be the result of calling
     `parse` on a source code file, into HTML.
     """
@@ -241,7 +255,7 @@ def render(title, sections) -> string_type:
     # documentation and code, via Markdown and Pygments.
     sections = [{
         'num': key,
-        'docs_html': preprocess_docs(value['docs']),
+        'docs_html': preprocess_docs(value['docs'], use_ascii),
         'code_html': preprocess_code(value['code'])
     } for key, value in sorted(sections.items())]
 
@@ -259,15 +273,33 @@ def render(title, sections) -> string_type:
 
 #### Preprocessors
 
-def preprocess_docs(docs:list):
+def preprocess_docs(docs:list, use_ascii:bool) -> string_type:
     """Preprocess the given `docs`, which should be a `list` of strings, by
-    joining them together and running them through Markdown.
+    joining them together and running them through Markdown or
+    asciidoc3 (which wants
     """
     assert isinstance(docs, list)
-    return markdown.markdown('\n\n'.join(filter(None, docs)))
+    if use_ascii:
+        if ascii_location is None:
+            raise ImportError('asciidoc3 was not found')
+        # Join the documentation sections together.
+        # Sometimes we have `None` in entries - filter them out
+        collated_docs = '\n\n'.join(filter(None, docs))
+        # Asciidoc3 likes file-like entities, so give it them
+        dummy_infile = io.StringIO(collated_docs)
+        dummy_outfile = io.StringIO()
+        asciidoc = AsciiDoc3API.AsciiDoc3API(ascii_location)
+        asciidoc.options('--no-header-footer')
+        # Call asciidoc - the output will be in `dummy_outfile`...
+        asciidoc.execute(dummy_infile, dummy_outfile, backend='html5')
+        # ...so return its content
+        return dummy_outfile.getvalue()
+    else:
+        # Otherwise, just pass the joined-up document sections to markdown()
+        return markdown.markdown('\n\n'.join(filter(None, docs)))
 
 
-def preprocess_code(code:list):
+def preprocess_code(code:list) -> string_type:
     """Preprocess the given code, which should be a `list` of strings, by
     joining them together and running them through the Pygments syntax
     highlighter.
@@ -366,7 +398,7 @@ class DocStringVisitor(ast.NodeVisitor):
 
         The Python docs state:
 
-        > A constant value. The value attribute of the Constant literal contains the Python
+        A constant value. The value attribute of the Constant literal contains the Python
         object it represents. The values represented can be simple types such as a number,
         string or None, but also immutable container types (tuples and frozensets) if all
         of their elements are constant.
@@ -398,7 +430,7 @@ class DocStringVisitor(ast.NodeVisitor):
                 # >      ..."""
                 #
                 #  or... well, you get the idea!
-                #
+
                 # `splitlines()` will handily split on the `\n`, so we can deal with all the above
                 # variants quite easily
                 line_count = len(node.value.s.splitlines())
