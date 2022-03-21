@@ -58,6 +58,8 @@ Outputs::
       -h, --help            show this help message and exit
       -o OUTPUT_DIR, --output-dir OUTPUT_DIR
                             Output directory (will be created if necessary)
+      -a, --asciidoc3       Process with asciidoc3 instead of markdown (you will have to install asciidoc3, of course)
+
 
 Library Usage
 -------------
