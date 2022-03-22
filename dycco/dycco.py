@@ -48,7 +48,7 @@ from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
 
-# We have to pranny about a bit because of asciidoc3's strange behaviour
+# We have to muck about a bit because of asciidoc3's strange behaviour
 # See: [AttributeError: module 'asciidoc3' has no attribute 'messages'](https://gitlab.com/asciidoc3/asciidoc3/-/issues/5)
 # for the explanation
 
@@ -62,22 +62,12 @@ if ascii_module:
     import asciidoc3.asciidoc3api as AsciiDoc3API
 
 
-COMMENT_PATTERN = '^\s*#'
+COMMENT_PATTERN = r'^\s*#'
 
 DYCCO_ROOT = os.path.dirname(__file__)
 DYCCO_RESOURCES = os.path.join(DYCCO_ROOT, 'resources')
 DYCCO_TEMPLATE = os.path.join(DYCCO_RESOURCES, 'template.html')
 DYCCO_CSS = os.path.join(DYCCO_RESOURCES, 'dycco.css')
-
-# We need a positive integer type
-
-
-# For Python 2 & 3 compatibility (although this code is unlikely
-# to work correctly for Python 2 any more).
-try:
-    string_type = basestring
-except NameError:
-    string_type = str
 
 
 ### Documentation Generation
@@ -100,7 +90,7 @@ def document(input_paths, output_dir, use_ascii:bool = False, escape_html:bool =
 
     # If we get a single path, stick it in a list so we can still pretend
     # we're operating on multiple paths.
-    if isinstance(input_paths, string_type):
+    if isinstance(input_paths, str):
         input_paths = [input_paths]
 
     # Make sure the directory exists
@@ -116,9 +106,9 @@ def document(input_paths, output_dir, use_ascii:bool = False, escape_html:bool =
         with open(input_path) as f_input:
             src = f_input.read()
             sections = parse(src)
-            html = render(filename, sections, use_ascii, escape_html)
+            html_output = render(filename, sections, use_ascii, escape_html)
             with open(output_path, 'w') as f_output:
-                f_output.write(html)
+                f_output.write(html_output)
 
     # Copy the CSS into the output directory
     shutil.copy(DYCCO_CSS, output_dir)
@@ -126,7 +116,7 @@ def document(input_paths, output_dir, use_ascii:bool = False, escape_html:bool =
 
 ### Parsing the Source
 
-def parse(src:string_type) -> defaultdict:
+def parse(src:str) -> defaultdict:
     """Parse the given source code in two passes. The first pass walks the
     *Abstract Syntax Tree* of the code, gathering up and noting the location
     of any docstrings. The second pass processes the code line by line,
@@ -166,7 +156,7 @@ def parse(src:string_type) -> defaultdict:
 
 #### First Pass
 
-def parse_docstrings(src:string_type, sections:defaultdict) -> set:
+def parse_docstrings(src:str, sections:defaultdict) -> set:
     """Parse the given `src` to find any docstrings, add them to the
     appropriate place in `sections`, and return a `set` of line numbers where
     the docstrings are. **Note:** Modifies `sections` in place.
@@ -185,7 +175,7 @@ def parse_docstrings(src:string_type, sections:defaultdict) -> set:
 
 #### Second Pass
 
-def parse_code(src:string_type, sections:defaultdict, skip_lines:set):
+def parse_code(src:str, sections:defaultdict, skip_lines:set):
     """Parse the given `src` line by line to gather source code and comments
     into the appropriate places in `sections`. Any line numbers in
     `skip_lines` are skipped. **Note:** Modifies `sections` in place.
@@ -256,7 +246,7 @@ def parse_code(src:string_type, sections:defaultdict, skip_lines:set):
 
 ### Rendering
 
-def render(title, sections, use_ascii:bool = False, escape_html:bool = False) -> string_type:
+def render(title:str, sections:defaultdict, use_ascii:bool = False, escape_html:bool = False) -> str:
     """Renders the given sections, which should be the result of calling
     `parse` on a source code file, into HTML.
     """
@@ -283,7 +273,7 @@ def render(title, sections, use_ascii:bool = False, escape_html:bool = False) ->
 
 ### Preprocessors
 
-def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool) -> string_type:
+def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool) -> str:
     """Preprocess the given `docs`, which should be a `list` of strings, by
     joining them together and running them through Markdown or
     asciidoc3.
@@ -323,7 +313,8 @@ def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool) -> string_type:
 
 #### Code - Pygments
 
-def preprocess_code(code:list) -> string_type:
+
+def preprocess_code(code:list) -> str:
     """Preprocess the given code, which should be a `list` of strings, by
     joining them together and running them through the Pygments syntax
     highlighter.
@@ -348,7 +339,7 @@ def make_sections() -> defaultdict:
     return defaultdict(section)
 
 
-def should_filter(line, num):
+def should_filter(line:str, num:int) -> bool:
     """Test the given line to see if it should be included. Excludes shebang
     lines, for now.
     """
@@ -361,7 +352,7 @@ def should_filter(line, num):
     return False
 
 
-def make_output_path(filename, output_dir):
+def make_output_path(filename, output_dir) -> str:
     """Creates an appropriate output path for the given source file and output
     directory. The output file name will be the name of the source file
     without its extension.
@@ -432,7 +423,7 @@ class DocStringVisitor(ast.NodeVisitor):
          `value.value` member).
         """
         if isinstance(node.value, ast.Constant):
-            if isinstance(node.value.value, string_type) and self.current_node and self.current_doc:
+            if isinstance(node.value.value, str) and self.current_node and self.current_doc:
                 # Figure out where the docstring *ends*, accounting for 0-based line numbers.
                 # _Note that modules *have* got an end-line despite what the older code says._
                 end_line = node.end_lineno - 1
