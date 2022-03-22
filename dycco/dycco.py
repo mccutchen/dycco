@@ -72,7 +72,8 @@ DYCCO_CSS = os.path.join(DYCCO_RESOURCES, 'dycco.css')
 
 ### Documentation Generation
 
-def document(input_paths, output_dir, use_ascii:bool = False, escape_html:bool = False):
+def document(input_paths, output_dir, use_ascii:bool = False, escape_html:bool = False,
+             single_file:bool = False):
     """Generates documentation for the Python files at the given `input_paths`
     by parsing each file into pairs of documentation and source code and
     rendering those pairs into an HTML file.
@@ -86,6 +87,12 @@ def document(input_paths, output_dir, use_ascii:bool = False, escape_html:bool =
     If escape_html is True, we use Python's `html.escape()` to prevent any embedded
     html in the comments from disrupting the output. Again, it's False by default
     to maintain the old behaviour.
+
+    `single_file` means that we just want to produce a file with either `.md` or
+    `.adoc` extension, in single-column format, with code blocks demarcated using
+    markdown or asciidoc3 indicators. This is handy if, for example, you haven't
+    got the Python asciidoc3 but have got asciidoctor available: you can pass it
+    the file for processing.
     """
 
     # If we get a single path, stick it in a list so we can still pretend
@@ -99,18 +106,23 @@ def document(input_paths, output_dir, use_ascii:bool = False, escape_html:bool =
 
     # Parse each input file into sections, render the sections as HTML into a
     # string, and create or overwrite the documentation at the appropriate
-    # output path.
+    # output path. We have a default extension of `html`...
+    extension = 'html'
+    if single_file:
+        # ...but if we are wanting a single file, use Markdown's or
+        # Asciidoc3's extensions
+        extension = 'adoc' if use_ascii else 'md'
     for input_path in input_paths:
         filename = os.path.basename(input_path)
-        output_path = make_output_path(filename, output_dir)
+        output_path = make_output_path(filename, output_dir, extension)
         with open(input_path) as f_input:
             src = f_input.read()
             sections = parse(src)
-            html_output = render(filename, sections, use_ascii, escape_html)
+            output_body = render(filename, sections, use_ascii, escape_html, single_file)
             with open(output_path, 'w') as f_output:
-                f_output.write(html_output)
+                f_output.write(output_body)
 
-    # Copy the CSS into the output directory
+    # Copy the CSS file into the output directory
     shutil.copy(DYCCO_CSS, output_dir)
 
 
@@ -246,37 +258,51 @@ def parse_code(src:str, sections:defaultdict, skip_lines:set):
 
 ### Rendering
 
-def render(title:str, sections:defaultdict, use_ascii:bool = False, escape_html:bool = False) -> str:
+def render(title:str, sections:defaultdict, use_ascii:bool = False,
+           escape_html:bool = False, single_file:bool = False) -> str:
     """Renders the given sections, which should be the result of calling
     `parse` on a source code file, into HTML.
+
+    If `single_file` is True, we don't actually run things through Pygments,
+    Markdown or Asciidoc3, but just output a single file with a suitable extension
     """
     # Transform the `sections` `dict` we were given into a format suitable for
     # our Mustache template. Along the way, preprocess each block of
     # documentation via Markdown or Asciidoc3 and code via Pygments.
     sections = [{
         'num': key,
-        'docs_html': preprocess_docs(value['docs'], use_ascii, escape_html),
-        'code_html': preprocess_code(value['code'])
+        'docs_html': preprocess_docs(value['docs'], use_ascii, escape_html, single_file),
+        'code_html': preprocess_code(value['code'], use_ascii, single_file)
     } for key, value in sorted(sections.items())]
 
     # We include a timestamp in the footer.
     date = datetime.datetime.utcnow().strftime('%d %b %Y')
 
-    context = {
-        'title': title,
-        'sections': sections,
-        'date': date,
-        }
-    with open(DYCCO_TEMPLATE) as f:
-        return pystache.render(f.read(), context)
+    if single_file:
+        # For a `single_file` we just weld all the gubbins together, the code
+        # sections will have been marked as such via `preprocess_code()`
+        out_lines = []
+        for section in sections:
+            out_lines.extend([section['docs_html'], '\n', section['code_html']])
+        out_text = '\n'.join(out_lines)
+        return out_text
+    else:
+        # ...otherwise, we carry on as before, rendering via pystache and the template
+        context = {
+            'title': title,
+            'sections': sections,
+            'date': date,
+            }
+        with open(DYCCO_TEMPLATE) as f:
+            return pystache.render(f.read(), context)
 
 
 ### Preprocessors
 
-def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool) -> str:
+def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool, raw:bool = False) -> str:
     """Preprocess the given `docs`, which should be a `list` of strings, by
     joining them together and running them through Markdown or
-    asciidoc3.
+    asciidoc3, unless `raw` is True, in which case we just return the text
     """
     assert isinstance(docs, list)
     # Join the documentation sections together.
@@ -285,6 +311,9 @@ def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool) -> str:
     collated_docs = '\n\n'.join(filter(None, docs))
     # Sanitize it if required
     sanitized_docs = html.escape(collated_docs) if escape_html else collated_docs
+    if raw:
+        # Don't do any actual processing, just return the strings.
+        return sanitized_docs
     if use_ascii:
         #### Documentation - Asciidoc3
         # If we couldn't find asciidoc3, bail out with an error
@@ -314,16 +343,32 @@ def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool) -> str:
 #### Code - Pygments
 
 
-def preprocess_code(code:list) -> str:
+def preprocess_code(code:list, use_ascii:bool = False, raw:bool = False) -> str:
     """Preprocess the given code, which should be a `list` of strings, by
     joining them together and running them through the Pygments syntax
-    highlighter.
+    highlighter unless `raw` is True, when we just return the text
     """
     assert isinstance(code, list)
-    lexer = get_lexer_by_name("python")
-    formatter = HtmlFormatter()
-    result = highlight('\n'.join(code), lexer, formatter)
-    return result
+    # Sometimes code is empty, so just return nothing
+    if not code or not ''.join(code).strip():
+        return ''
+    if raw:
+        # We don't highlight for `raw` output, we'll just mark the code with the
+        # appropriate 'this is code' text for markdown or asciidoc3
+        delimiter = '---------------------------------------------------------------------'
+        if use_ascii:
+            # ...either asciidoc3's markers...
+            code_block = '\n[source,python]\n{0}\n{1}\n{0}\n'.format(delimiter, '\n'.join(code), delimiter)
+        else:
+            # ...or Markdown's markers - it has to be indented for markdown hence the `\t`
+            code_block = '{0}\n\t{1}\n{0}\n'.format(delimiter, '\n\t'.join(code), delimiter)
+        return code_block
+    else:
+        # Do what we always used to - pass througn Pygments
+        lexer = get_lexer_by_name("python")
+        formatter = HtmlFormatter()
+        result = highlight('\n'.join(code), lexer, formatter)
+        return result
 
 
 ### Support Functions
@@ -352,13 +397,14 @@ def should_filter(line:str, num:int) -> bool:
     return False
 
 
-def make_output_path(filename, output_dir) -> str:
+def make_output_path(filename, output_dir, extension:str = 'html') -> str:
     """Creates an appropriate output path for the given source file and output
     directory. The output file name will be the name of the source file
-    without its extension.
+    without its original extension but with `html`, `md` or `adoc` as
+    a new one.
     """
     name, ext = os.path.splitext(filename)
-    return os.path.join(output_dir, '%s.html' % name)
+    return os.path.join(output_dir, '%s.%s' % (name, extension))
 
 
 #### AST Parsing

@@ -60,6 +60,7 @@ Outputs::
                             Output directory (will be created if necessary)
       -a, --asciidoc3       Process with asciidoc3 instead of markdown (you will have to install asciidoc3, of course)
       -e, --escape-html     Run the documentation through html.escape() before markdown or asciidoc3
+      -f, --single-file     Just produce a .md or .adoc file in single-column to be processed externally
 
 
 
