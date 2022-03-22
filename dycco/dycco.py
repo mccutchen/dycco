@@ -40,6 +40,7 @@ import re
 import shutil
 import io
 from collections import defaultdict
+import html
 
 import markdown
 import pystache
@@ -81,16 +82,20 @@ except NameError:
 
 ### Documentation Generation
 
-def document(input_paths, output_dir, use_ascii:bool = False):
+def document(input_paths, output_dir, use_ascii:bool = False, escape_html:bool = False):
     """Generates documentation for the Python files at the given `input_paths`
     by parsing each file into pairs of documentation and source code and
     rendering those pairs into an HTML file.
 
     The `input_paths` param can be a `list` of paths or a single `str` path.
 
-    Usually, markdown() is called, but if `use_ascii` is true, we'll use asciidoc3.
-    __main__.py looks for the -a / --asciidoc3 flag for this. By default, it's set
+    Usually, markdown() is called, but if `use_ascii` is true, we'll use asciidoc3
+    (`__main__.py` looks for the `-a / --asciidoc3` flag for this). By default, it's set
     to False to retain the old behaviour of just using markdown.
+
+    If escape_html is True, we use Python's `html.escape()` to prevent any embedded
+    html in the comments from disrupting the output. Again, it's False by default
+    to maintain the old behaviour.
     """
 
     # If we get a single path, stick it in a list so we can still pretend
@@ -111,7 +116,7 @@ def document(input_paths, output_dir, use_ascii:bool = False):
         with open(input_path) as f_input:
             src = f_input.read()
             sections = parse(src)
-            html = render(filename, sections, use_ascii)
+            html = render(filename, sections, use_ascii, escape_html)
             with open(output_path, 'w') as f_output:
                 f_output.write(html)
 
@@ -251,7 +256,7 @@ def parse_code(src:string_type, sections:defaultdict, skip_lines:set):
 
 ### Rendering
 
-def render(title, sections, use_ascii:bool = False) -> string_type:
+def render(title, sections, use_ascii:bool = False, escape_html:bool = False) -> string_type:
     """Renders the given sections, which should be the result of calling
     `parse` on a source code file, into HTML.
     """
@@ -260,7 +265,7 @@ def render(title, sections, use_ascii:bool = False) -> string_type:
     # documentation via Markdown or Asciidoc3 and code via Pygments.
     sections = [{
         'num': key,
-        'docs_html': preprocess_docs(value['docs'], use_ascii),
+        'docs_html': preprocess_docs(value['docs'], use_ascii, escape_html),
         'code_html': preprocess_code(value['code'])
     } for key, value in sorted(sections.items())]
 
@@ -278,30 +283,32 @@ def render(title, sections, use_ascii:bool = False) -> string_type:
 
 ### Preprocessors
 
-def preprocess_docs(docs:list, use_ascii:bool) -> string_type:
+def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool) -> string_type:
     """Preprocess the given `docs`, which should be a `list` of strings, by
     joining them together and running them through Markdown or
     asciidoc3.
     """
     assert isinstance(docs, list)
+    # Join the documentation sections together.
+    # Sometimes we have `None` in entries - filter them out
+    # while we do so.
+    collated_docs = '\n\n'.join(filter(None, docs))
+    # Sanitize it if required
+    sanitized_docs = html.escape(collated_docs) if escape_html else collated_docs
     if use_ascii:
+        #### Documentation - Asciidoc3
         # If we couldn't find asciidoc3, bail out with an error
         if ascii_location is None:
             raise ImportError('asciidoc3 was not found')
-        #### Documentation - Asciidoc3
 
-        # Join the documentation sections together.
-        # Sometimes we have `None` in entries - filter them out
-        # while we do so.
-        collated_docs = '\n\n'.join(filter(None, docs))
         # Asciidoc3 likes file-like entities, so give it them
-        dummy_infile = io.StringIO(collated_docs)
+        dummy_infile = io.StringIO(sanitized_docs)
         dummy_outfile = io.StringIO()
-        # We have to force-feed asciidoc3 with its location or else
-        # it will choke and claim things are missing - this is
+        # We have to force-feed asciidoc3 with its location (`ascii_location`)
+        # or it will choke and claim things are missing - this is
         # especially true in virtual environments using `pip`
+        # See https://gitlab.com/asciidoc3/asciidoc3/-/issues/5
         asciidoc = AsciiDoc3API.AsciiDoc3API(ascii_location)
-
         asciidoc.options('--no-header-footer')
         # Call asciidoc - the output will be in `dummy_outfile`...
         asciidoc.execute(dummy_infile, dummy_outfile, backend='html5')
@@ -309,10 +316,12 @@ def preprocess_docs(docs:list, use_ascii:bool) -> string_type:
         return dummy_outfile.getvalue()
     else:
         #### Documentation - Markdown
-        # Otherwise, just pass the joined-up document sections to markdown()
-        return markdown.markdown('\n\n'.join(filter(None, docs)))
 
-#### Code
+        # Otherwise, just pass the joined-up (possibly sanitized)
+        # document sections to markdown()
+        return markdown.markdown(sanitized_docs)
+
+#### Code - Pygments
 
 def preprocess_code(code:list) -> string_type:
     """Preprocess the given code, which should be a `list` of strings, by
