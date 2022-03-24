@@ -47,7 +47,8 @@ All command line options are given below::
 
 Outputs::
 
-    usage: dycco [-h] [-o OUTPUT_DIR] source_file [source_file ...]
+
+    usage: dycco [-h] [-o OUTPUT_DIR] [-a] [-e] [-f] source_file [source_file ...]
 
     Literate-style documentation generator.
 

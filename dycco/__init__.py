@@ -1,1 +1,1 @@
-from .dycco import document, parse  # noqa
+from .dycco import document, parse, preprocess_docs  # noqa
