@@ -7,3 +7,4 @@ dist
 _*
 env/
 dycco.egg-info/
+build/

@@ -343,10 +343,14 @@ def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool, raw:bool = Fals
 #### Code - Pygments
 
 
-def preprocess_code(code:list, use_ascii:bool = False, raw:bool = False) -> str:
+def preprocess_code(code:list, use_ascii:bool = False, raw:bool = False, language_name:str = 'python') -> str:
     """Preprocess the given code, which should be a `list` of strings, by
     joining them together and running them through the Pygments syntax
     highlighter unless `raw` is True, when we just return the text
+
+    Although we are strictly python, it's possible that this might get called by other
+    routines as it's quite handy, so allow the language to be specified
+    in `language_name`. Behaviour if `language_name` is blank is undefined (for asciidoc3).
     """
     assert isinstance(code, list)
     # Sometimes code is empty, so just return nothing
@@ -358,10 +362,11 @@ def preprocess_code(code:list, use_ascii:bool = False, raw:bool = False) -> str:
         delimiter = '---------------------------------------------------------------------'
         if use_ascii:
             # ...either asciidoc3's markers...
-            code_block = '\n[source,python]\n{0}\n{1}\n{0}\n'.format(delimiter, '\n'.join(code), delimiter)
+            code_block = '\n[source,{2}]\n{0}\n{1}\n{0}\n'.format(delimiter, '\n'.join(code), language_name)
         else:
-            # ...or Markdown's markers - it has to be indented for markdown hence the `\t`
-            code_block = '{0}\n\t{1}\n{0}\n'.format(delimiter, '\n\t'.join(code), delimiter)
+            # ...or Markdown's markers
+            delimiter = "```"
+            code_block = '{0}{2}\n{1}\n{0}\n'.format(delimiter, '\n'.join(code), language_name)
         return code_block
     else:
         # Do what we always used to - pass througn Pygments
