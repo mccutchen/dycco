@@ -1,6 +1,9 @@
 import unittest
 from utils import with_setup
 
+# Adjusted for Python 3 version - v1.0.2 and above, RJL 2022
+# For example, `print` now is `print()`. There are also some changes
+# due to the AST / compiler changes in Python 3
 
 class ParserTests(unittest.TestCase):
 
@@ -8,32 +11,32 @@ class ParserTests(unittest.TestCase):
     def test_skip_shebang(self):
         self.assertEqual(
             self.results,
-            {1: {'docs': [], 'code': ["print 'Hello, World!'"]}})
+            {1: {'docs': [], 'code': ["print('Hello, World!')"]}})
 
     @with_setup
     def test_skip_coding(self):
         self.assertEqual(
             self.results,
-            {1: {'docs': [], 'code': ["print 'Hello, World!'"]}})
+            {1: {'docs': [], 'code': ["print('Hello, World!')"]}})
 
     @with_setup
     def test_skip_emacs_coding(self):
         self.assertEqual(
             self.results,
-            {1: {'docs': [], 'code': ["print 'Hello, World!'"]}})
+            {1: {'docs': [], 'code': ["print('Hello, World!')"]}})
 
     @with_setup
     def test_skip_shebang_and_coding(self):
         self.assertEqual(
             self.results,
-            {2: {'docs': [], 'code': ["print 'Hello, World!'"]}})
+            {2: {'docs': [], 'code': ["print('Hello, World!')"]}})
 
     @with_setup
     def test_bad_shebang_and_coding(self):
         self.assertEqual(
             self.results,
             {3: {'docs': ['Shebang must come first\n!/usr/bin/env/python2.6\n -*- coding: utf8 -*-'],
-                 'code': ["print 'Hello, World!'"]}})
+                 'code': ["print('Hello, World!')"]}})
 
     @with_setup
     def test_module_docstring(self):
@@ -57,15 +60,28 @@ class ParserTests(unittest.TestCase):
 
     @with_setup
     def test_torturetest(self):
+        print()
+        for result in self.results.items():
+            print(result)
+        self.maxDiff = None
         self.assertEqual(
             self.results,
             {3: {'docs': ['## A Module-Level Docstring\n\nLorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo\nligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis\nparturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec,\npellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec\npede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo,\nrhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede\nmollis pretium. Integer tincidunt. Cras dapibus.\n\nVivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo\nligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante,\ndapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus\nvarius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel\naugue. Curabitur ullamcorper ultricies nisi.'],
                  'code': []},
-             37: {'docs': ['### A singly-decorated method', 'A multiline docstring with leading and trailing breaks.\n\nWhat do you think of that?'],
-                  'code': [
-                        '    @classmethod',
-                        '    def method1(cls):',
-                        '        pass', '']},
+             22: {'docs': ['Some imports'],
+                  'code': ['import sys, os, re',
+                           'from functools import wraps',
+                           'import itertools',
+                           '',
+                           '']},
+             28: {'docs': [
+                 '## This is an important class',
+                 'Single-line docstring'],
+                 'code': ['class Foo(object):', '']},
+             37: {'docs': ['### A singly-decorated method'],
+                  'code': ['    @classmethod']},
+             38: {'docs': ['A multiline docstring with leading and trailing breaks.\n\nWhat do you think of that?'],
+                  'code': ['    def method1(cls):', '        pass', '']},
              73: {'docs': ['## Utility functions'],
                   'code': ['']},
              74: {'docs': [None],
@@ -87,25 +103,15 @@ class ParserTests(unittest.TestCase):
                         '@wraps(bar)',
                         'def decorated_function_definition(function, which, takes, many, args, whose,',
                         '                                  definition, wraps, across, multiple, lines):',
-                        "    print 'Hello!'"]},
+                        "    print('Hello!')"]},
              78: {'docs': ['A long function definition with some very important documentation.'],
                   'code': ['def really_long_function_definition(function, which, takes, many, args, whose,',
                            '                                    definition, wraps, across, multiple,',
                            '                                    lines):',
                            '    return 2 ** 128',
                            '']},
-             22: {'docs': ['Some imports'],
-                  'code': ['import sys, os, re',
-                           'from functools import wraps',
-                           'import itertools',
-                           '',
-                           '']},
              52: {'docs': ['A mutliply-decorated method, with no docstring. How will this look\n to your parents?'],
                   'code': ['']},
-             28: {'docs': [
-                        '## This is an important class',
-                        'Single-line docstring'],
-                  'code': ['class Foo(object):', '']},
              61: {'docs': ['A mutliply-decorated method, *with* a docstring. Better? I\ncertainly hope so.'],
                   'code': ['    @property',
                            '    @wraps(method1)',

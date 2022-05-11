@@ -255,6 +255,35 @@ def parse_code(src:str, sections:defaultdict, skip_lines:set):
             if current_section is not None:
                 sections[current_section]['code'].append(line)
 
+    #### Decorators
+    # Now we need to jiggle any decorators about - they should not be at the end of
+    # sections, but at the start of the *next* code section (however, sometimes they
+    # get placed at the end).
+
+    # Get ourselves an ordered list of the possible section numbers so that we can
+    # easily find the 'next' greater section-number
+    section_numbers = sorted(sections.keys())
+    # We'll now have an ordered list of just the section *numbers* like `[3, 14, 17, 22, 85]`
+    # We don't check the last one (`85` in this example) as we cannot bump content
+    # *from* it only *into* it
+    for this_section_number in section_numbers[:-1]:
+        # Get what would be the next section number: find where *we* are and add one to it
+        # so, if we were `14` in `[3, 14, 17, 22, 85]` we'd be at `1`, but want the position of
+        # the next section which is at `2`
+        next_index = section_numbers.index(this_section_number) + 1
+        # And then we want the value that's there (`17` in this example)
+        next_section_number = section_numbers[next_index]
+        # We move back 'up' the code content, moving any trailing decorators to the next section.
+        content = sections[this_section_number]['code']
+        for line in reversed(content):
+            # Bail out if there are none, or we've used them all up...
+            if not line.strip().startswith('@'):
+                break
+            # ...Otherwise, remove the last entry from our section's code...
+            s = sections[this_section_number]['code'].pop()
+            # ...and add it to the **start** of the *next* section's code - doing it this
+            # way also preserves the order of the decorators.
+            sections[next_section_number]['code'].insert(0, s)
 
 ### Rendering
 
@@ -325,8 +354,8 @@ def preprocess_docs(docs:list, use_ascii:bool, escape_html:bool, raw:bool = Fals
         dummy_outfile = io.StringIO()
         # We have to force-feed asciidoc3 with its location (`ascii_location`)
         # or it will choke and claim things are missing - this is
-        # especially true in virtual environments using `pip`
-        # See https://gitlab.com/asciidoc3/asciidoc3/-/issues/5
+        # especially true in virtual environments using `pip`.
+        # See [issue 5](https://gitlab.com/asciidoc3/asciidoc3/-/issues/5).
         asciidoc = AsciiDoc3API.AsciiDoc3API(ascii_location)
         asciidoc.options('--no-header-footer')
         # Call asciidoc - the output will be in `dummy_outfile`...

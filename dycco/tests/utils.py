@@ -20,11 +20,15 @@ def with_setup_src(path):
     corresponding source code be given. See `with_setup`, below, for a
     shortcut that uses the test method's name to find the corresponding source
     code.
+
+    RJL: Corrected for v1.0.2 to correctly close the file
     """
     def decorator(method):
         @wraps(method)
         def decorated(self, *args, **kwargs):
-            self.src = open(path).read()
+            the_file = open(path)
+            self.src = the_file.read()
+            the_file.close()
             self.results = dict(dycco.parse(self.src))
             return method(self, *args, **kwargs)
         return decorated
