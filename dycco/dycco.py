@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 """**Dycco** is another Python port of [Docco][docco], the quick-and-dirty,
-hundred-line-long, literate-programming-style documentation generator.
+hundred-line-long, literate-programming-style documentation generator. This
+particular version has been updated to work with Python 3 (as of 2022).
 
 Dycco reads Python source files and produces annotated source documentation in
 HTML format. Comments and docstrings are formatted with [Markdown][markdown] or

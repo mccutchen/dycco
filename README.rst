@@ -8,9 +8,13 @@ example and more information, see `its self-generated docs`_.
 
 This port of Docco has fewer features than the pimary Python port, `Pycco`_.
 For instance, Dycco can generate documentation for Python files and nothing
-else. It was written mostly as a reason to play with Python's AST.
+else. It was written mostly as a reason to play with Python's AST. However, this
+version allows output to a markdown file or to an asciidoc3 file, as well
+as adding a option to sanitize internal HTML (which is handy if your code
+included html fragments).
 
-You can use `Pycco`_ instead.
+You can use `Pycco`_ instead, or a newer version (`still in development`_)
+that uses Dycco internally to handle Python files.
 
 
 Installation
@@ -78,9 +82,11 @@ Credits
 =======
 
 Dycco is just a simple re-implementation of `Docco`_, with some inspiration and
-template code from its primary Python port `Pycco`_.
+template code from its primary Python port `Pycco`_ (`and an updated version`_)
 
 .. _Docco: https://ashkenas.com/docco/
 .. _Pycco: https://github.com/pycco-docs/pycco
 .. _pip: http://www.pip-installer.org/
-.. _its self-generated docs: https://mccutchen.github.io/dycco/
+.. _its self-generated docs: https://rojalator.github.io/dycco.html
+.. _still in development : https://github.com/rojalator/pycco
+.. _and an updated version : https://github.com/rojalator/pycco
