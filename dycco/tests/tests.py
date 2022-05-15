@@ -60,9 +60,8 @@ class ParserTests(unittest.TestCase):
 
     @with_setup
     def test_torturetest(self):
-        print()
-        for result in self.results.items():
-            print(result)
+        # The output test has been adjusted slightly - the old code
+        # occasionally separated decorators (not always).
         self.maxDiff = None
         self.assertEqual(
             self.results,
@@ -79,9 +78,9 @@ class ParserTests(unittest.TestCase):
                  'Single-line docstring'],
                  'code': ['class Foo(object):', '']},
              37: {'docs': ['### A singly-decorated method'],
-                  'code': ['    @classmethod']},
+                  'code': []},
              38: {'docs': ['A multiline docstring with leading and trailing breaks.\n\nWhat do you think of that?'],
-                  'code': ['    def method1(cls):', '        pass', '']},
+                  'code': ['    @classmethod', '    def method1(cls):', '        pass', '']},
              73: {'docs': ['## Utility functions'],
                   'code': ['']},
              74: {'docs': [None],
@@ -98,7 +97,7 @@ class ParserTests(unittest.TestCase):
                            '            return 42',
                            '',
                            '        return foo', '']},
-             84: {'docs': ['A *decorated* long function definition With some very important\ndocumentation.'],
+             85: {'docs': ['A *decorated* long function definition With some very important\ndocumentation.'],
                   'code': [
                         '@wraps(bar)',
                         'def decorated_function_definition(function, which, takes, many, args, whose,',
@@ -112,7 +111,7 @@ class ParserTests(unittest.TestCase):
                            '']},
              52: {'docs': ['A mutliply-decorated method, with no docstring. How will this look\n to your parents?'],
                   'code': ['']},
-             61: {'docs': ['A mutliply-decorated method, *with* a docstring. Better? I\ncertainly hope so.'],
+             64: {'docs': ['A mutliply-decorated method, *with* a docstring. Better? I\ncertainly hope so.'],
                   'code': ['    @property',
                            '    @wraps(method1)',
                            '    @classmethod',
