@@ -85,6 +85,6 @@ template code from its primary Python port `Pycco`_ (`and an updated version`_)
 .. _Docco: https://ashkenas.com/docco/
 .. _Pycco: https://github.com/pycco-docs/pycco
 .. _pip: http://www.pip-installer.org/
-.. _its self-generated docs: https://github.com/rojalator/dycco/tree/master/docs/dycco.html
+.. _its self-generated docs: https://rojalator.github.io/dycco.html
 .. _new_version : https://github.com/rojalator/pycco
 .. _and an updated version : https://github.com/rojalator/pycco
