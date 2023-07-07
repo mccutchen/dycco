@@ -4,6 +4,10 @@
 hundred-line-long, literate-programming-style documentation generator. This
 particular version has been updated to work with Python 3 (as of 2022).
 
+This version allows output to a markdown file or to an asciidoc3 file, as well
+as adding a option to sanitize internal HTML (which is handy if your code
+includes html fragments).
+
 Dycco reads Python source files and produces annotated source documentation in
 HTML format. Comments and docstrings are formatted with [Markdown][markdown] or
 with [AsciiDoc3][asciidoc3]
@@ -11,7 +15,7 @@ and presented as annotations alongside the source code, which is
 syntax-highlighted by [Pygments][pygments]. This page is the result of running
 Dycco against its [own source file][dycco].
 
-Dycco differs from Nick Fitzgerald's [Pycco][pycco], the first Python port of
+Dycco differs from Nick Fitzgerald's [Pycco][pycco] ([new version][newpycco]), the first Python port of
 [Docco][docco], in that it only knows how to generate documenation on Python
 source code and it uses that specialization to more accurately parse
 documentation. It does so using a two-pass parsing stage, first walking the
@@ -19,7 +23,7 @@ documentation. It does so using a two-pass parsing stage, first walking the
 code line-by-line to extract comments.
 
 Dycco's HTML and CSS are taken straight from [Docco][docco], but, like
-[Pycco][pycco], Dycco uses [Mustache][mustache] templates rendered by
+Pycco, Dycco uses [Mustache][mustache] templates rendered by
 [Pystache][pystache]. The first version of Dycco's templates and CSS were
 taken straight from [Pycco][pycco], then updated to match the latest changes
 to [Docco][docco]'s.
@@ -32,6 +36,7 @@ to [Docco][docco]'s.
 [mustache]: https://github.com/peterldowns/python-mustache
 [pystache]: https://github.com/defunkt/pystache
 [asciidoc3]: https://asciidoc3.org/
+[newpycco]: https://github.com/rojalator/pycco
 """
 
 import ast

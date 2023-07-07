@@ -4,17 +4,15 @@ Dycco
 
 Dycco is a(nother) Python port of `Docco`_, the original quick-and-dirty,
 hundred-line-long, literate-programming-style documentation generator. For an
-example and more information, see `its self-generated docs`_.
+example and more information on Dycco, see `its self-generated docs`_.
 
-This port of Docco has fewer features than the pimary Python port, `Pycco`_.
-For instance, Dycco can generate documentation for Python files and nothing
-else. It was written mostly as a reason to play with Python's AST. However, this
-version allows output to a markdown file or to an asciidoc3 file, as well
+This version allows output to a markdown file or to an asciidoc3 file, as well
 as adding a option to sanitize internal HTML (which is handy if your code
-included html fragments).
+includes html fragments).  Dycco can generate documentation for Python files and nothing
+else.
 
-You can use `Pycco`_ instead, or a newer version (`still in development`_)
-that uses Dycco internally to handle Python files.
+You can use `Pycco`_ (or a `new_version`_) instead, for other types of file,
+that uses Dycco's code internally to handle Python files.
 
 
 Installation
@@ -22,7 +20,7 @@ Installation
 
 Use `pip`_ to install::
 
-    pip install dycco
+    pip install git+https://github.com/rojalator/dycco
 
 
 Usage
@@ -87,6 +85,6 @@ template code from its primary Python port `Pycco`_ (`and an updated version`_)
 .. _Docco: https://ashkenas.com/docco/
 .. _Pycco: https://github.com/pycco-docs/pycco
 .. _pip: http://www.pip-installer.org/
-.. _its self-generated docs: https://rojalator.github.io/dycco.html
-.. _still in development : https://github.com/rojalator/pycco
+.. _its self-generated docs: https://github.com/rojalator/dycco/tree/master/docs/dycco.html
+.. _new_version : https://github.com/rojalator/pycco
 .. _and an updated version : https://github.com/rojalator/pycco

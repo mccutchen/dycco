@@ -8,3 +8,4 @@ _*
 env/
 dycco.egg-info/
 build/
+*.~*~
