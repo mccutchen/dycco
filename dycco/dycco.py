@@ -147,10 +147,13 @@ def parse(src:str) -> defaultdict:
 
     It will look a little like this:
 
-        { 1: { 'docs': ['...', '...'],
-               'code': ['...', '...'] },
-          9: { 'docs': ['...', '...'],
-               'code': ['...', '...'] } }
+
+        { 1: {docs: [..., ...],
+               code: [..., ...] },
+          9: {docs: [..., ...],
+               code: [..., ...] } }
+
+
 
     The docs for each section can come from docstrings (the first pass) or
     from comments (the second pass). The line numbers start at zero, for
