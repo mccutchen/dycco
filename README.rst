@@ -6,6 +6,13 @@ Dycco is a(nother) Python port of `Docco`_, the original quick-and-dirty,
 hundred-line-long, literate-programming-style documentation generator. For an
 example and more information on Dycco, see `its self-generated docs`_.
 
+Example output:-
+
+  * https://rojalator.github.io/session3/literate/session3/SessionManager.html
+  * https://rojalator.github.io/pycco/main_py.html (includes a diagram)
+  * https://rojalator.github.io/dycco/dycco.html
+
+
 This version allows output to a markdown file or to an asciidoc3 file, as well
 as adding a option to sanitize internal HTML (which is handy if your code
 includes html fragments).  Dycco can generate documentation for Python files and nothing
