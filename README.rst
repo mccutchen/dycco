@@ -1,3 +1,13 @@
+
+==========================
+⚠️ 301 Moved Permanently ⚠️
+==========================
+
+**This repository is no longer maintained.** Please see `rojalator/dycco`_ for
+an up-to-date, actively maintained version of this project.
+
+The original README follows below.
+
 =====
 Dycco
 =====
@@ -74,6 +84,7 @@ Credits
 Dycco is just a simple re-implementation of `Docco`_, with some inspiration and
 template code from its primary Python port `Pycco`_.
 
+.. _rojalator/dycco: https://github.com/rojalator/dycco/
 .. _Docco: http://jashkenas.github.com/docco/
 .. _Pycco: http://fitzgen.github.com/pycco/
 .. _pip: http://www.pip-installer.org/
